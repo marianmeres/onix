@@ -1,0 +1,5843 @@
+{
+	"swagger": "2.0",
+	"info": {
+		"version": "V1",
+		"title": "ONIX API",
+		"description": "Dokumentácia ku Web API programu ONIX.\r\nPre testovanie s reálnymi dátami (dotazovanie servera) je potrebné zadať autorizačný token, ktorý Vám poskytla firma Kros a.s..\r\nPri každom dotaze je potrebné uviesť cestu ku databáze s dátami (taktiež poskytnutú firmou Kros a.s.).",
+		"x-swagger-net-version": "8.5.12.001",
+		"contact": {
+			"name": "Kros a.s.",
+			"url": "http://onix.kros.sk/pluginy/web-api-dokumentacia/",
+			"email": "servis.onix@kros.sk"
+		}
+	},
+	"host": "195.146.148.139",
+	"basePath": "/ONIX_API",
+	"schemes": ["http"],
+	"paths": {
+		"/api/v1/documents/{documentTypeId}": {
+			"get": {
+				"tags": ["Documents"],
+				"summary": "Vracia zoznam všetkých dokumentov, z konkrétnej evidencie. Evidencia je určená na základe parametra documentTypeId.",
+				"description": "Bez parametrov stránkovania vracia samostatné pole dokladov.\r\n            \r\nS parametrami stránkovania vracia obal s metadátami:\r\n{ \"data\": [...], \"nextCursor\": 52310, \"hasNext\": true, \"pageSize\": 100 }\r\n            \r\nPrechádzanie stránok: použiť nextCursor z response ako hodnotu parametra cursor v ďalšom requeste.\r\nKeď hasNext = false, neboli nájdené ďalšie záznamy.\r\nAk nextCursor chýba v response (null), zoznam je prázdny.",
+				"operationId": "Documents_GetDocuments",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "tables",
+						"in": "query",
+						"description": "Zoznam podtabuliek dokladu.<br>ALL - všetky podtabuľky<br>DOCITEMS - položky<br>ENCLOSURES - prílohy",
+						"required": false,
+						"items": {
+							"type": "string",
+							"enum": ["ALL", "DOCITEMS", "ENCLOSURES"]
+						},
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "htmlFormat",
+						"in": "query",
+						"description": "Nastavenie parametra, či má vrátiť formátovaný text (platí iba pre pole Doc_Description).",
+						"required": false,
+						"type": "boolean",
+						"default": false
+					},
+					{
+						"name": "pageSize",
+						"in": "query",
+						"description": "Počet záznamov na stránku. Ak nie je zadaný, vráti sa celý zoznam.",
+						"required": false,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "cursor",
+						"in": "query",
+						"description": "Kurzor z predchádzajúcej stránky (hodnota nextCursor). Pre prvú stránku vynechať alebo zadať 0.",
+						"required": false,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "Partner_Name",
+						"in": "query",
+						"description": "Filter: Názov partnera \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "Ns_Number",
+						"in": "query",
+						"description": "Filter: Číslo dokladu \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "Date_Changed",
+						"in": "query",
+						"description": "Filter: Dátum zmeny \r\nPre dátumové polia sú podporované intervalové operátory: gte, lte, gt, lt. Napr. \"gte:2024-01-01\" = GreaterThanOrEqual 2024-01-01.\nJe možné zadávať aj časovú zložku. Napr. \"gt:2024-01-01T12:00:00\" = GreaterThan 2024-01-01 12:00:00.\nZadanie bez intervalového operátora sa berie ako = Equals (celý deň od 00:00:00 do 23:59:59). Napr. \"2024-01-01\" = Between 2024-01-01 00:00:00 and 2024-01-01 23:59:59.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Zoznam dokladov (bez stránkovania)",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoDocument_get"
+							},
+							"xml": { "name": "DtoDocument", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					},
+					"200 (pageSize)": {
+						"description": "Stránkovaný zoznam dokladov (s pageSize)",
+						"schema": {
+							"$ref": "#/definitions/PagedResult_DtoDocument_get"
+						}
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			},
+			"post": {
+				"tags": ["Documents"],
+				"summary": "Pridá jeden doklad, do konkrétnej evidencie dokladov určenej podľa parametra documentTypeId. Dáta dokladu sa nachádzajú v \"body\" requestu.\r\nV prípade, že pridávaný doklad už existuje vykoná sa akcia edit a prebehne aktualizácia údajov na hlavičke dokladu.\r\nV prípade, že budú v dotaze odoslané aj položky tak všetky pôvodné sú zmazané a nahradené novými.",
+				"operationId": "Documents_AddOrEditDocument",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "document",
+						"in": "body",
+						"description": "Dáta dokladu.",
+						"required": true,
+						"schema": { "$ref": "#/definitions/DtoDocument_post" }
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/documents/{documentTypeId}/{nsNumber}/{nsCode}/{nsEvidCode}": {
+			"delete": {
+				"tags": ["Documents"],
+				"summary": "Vymaže doklad. Doklad je určený na základe čísla, kódu číselného radu a kódu evidencie.",
+				"operationId": "Documents_DeleteDocuments",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "nsNumber",
+						"in": "path",
+						"description": "Číslo dokladu.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "nsCode",
+						"in": "path",
+						"description": "Kód číselného radu.",
+						"required": true,
+						"type": "string",
+						"default": ""
+					},
+					{
+						"name": "nsEvidCode",
+						"in": "path",
+						"description": "Kód evidencie.",
+						"required": true,
+						"type": "string",
+						"default": ""
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/documents/{documentTypeId}/list": {
+			"post": {
+				"tags": ["Documents"],
+				"summary": "Pridá viacero dokladov, do konkrétnej evidencie dokladov určenej podľa parametra documentTypeId. Dáta dokladov sa nachádzajú v \"body\" requestu.",
+				"operationId": "Documents_AddOrEditDocuments",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "documents",
+						"in": "body",
+						"description": "Dáta dokladov.",
+						"required": true,
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoDocument_post"
+							},
+							"xml": { "name": "DtoDocument", "wrapped": true },
+							"type": "array"
+						}
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": { "$ref": "#/definitions/Result" },
+							"xml": { "name": "Result", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"deprecated": true,
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/documents/types": {
+			"get": {
+				"tags": ["Documents"],
+				"summary": "Vracia zoznam všetkých typov dokladov.",
+				"operationId": "Documents_GetDocumentTypes",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoDocumentType"
+							},
+							"xml": {
+								"name": "DtoDocumentType",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/documents/{documentTypeId}/states": {
+			"get": {
+				"tags": ["Documents"],
+				"summary": "Vracia zoznam všetkých stavov dokladu, pre konkrétny typ dokladu.",
+				"operationId": "Documents_GetDocumentStates",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoDocumentState"
+							},
+							"xml": {
+								"name": "DtoDocumentState",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			},
+			"post": {
+				"tags": ["Documents"],
+				"summary": "Nastaví zadaný stav na doklad.",
+				"operationId": "Documents_SetState",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "documentState",
+						"in": "body",
+						"description": "Dáta obsahujúce doklad a stav.",
+						"required": true,
+						"schema": {
+							"$ref": "#/definitions/DocumentCurrentState"
+						}
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/documents/{documentTypeId}/customcolumns": {
+			"post": {
+				"tags": ["Documents"],
+				"summary": "Nastaví custom hodnoty na doklad.",
+				"operationId": "Documents_SetCustomColumns",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "documentCustomColumns",
+						"in": "body",
+						"description": "Dáta obsahujúce doklad a custom hodnoty.",
+						"required": true,
+						"schema": {
+							"$ref": "#/definitions/DocumentCustomColumns"
+						}
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/enclosures": {
+			"get": {
+				"tags": ["Enclosures"],
+				"summary": "Vracia prílohu podľa zadaného IdRecord.",
+				"operationId": "Enclosures_GetEnclosure",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "idRecord",
+						"in": "query",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"$ref": "#/definitions/DtoEnclosureData_get"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/enclosures/{documentTypeId}/{documentIdRecord}": {
+			"post": {
+				"tags": ["Enclosures"],
+				"summary": "Pridá jednu prílohu do dokladu s daným documentIdRecord v evidencii dokladov určenej podľa parametra documentTypeId.\r\nMaximálna veľkosť prílohy je 20 MB.",
+				"operationId": "Enclosures_PostDocumentEnclosure",
+				"consumes": ["multipart/form-data"],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "documentTypeId",
+						"in": "path",
+						"description": "ID typu dokladu (evidencie) v obchodnom cykle.",
+						"required": true,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "documentIdRecord",
+						"in": "path",
+						"description": "ID dokladu.",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "file",
+						"in": "formData",
+						"description": "Súbor",
+						"required": true,
+						"type": "file"
+					},
+					{
+						"name": "SyncToOmega",
+						"in": "formData",
+						"description": "Zapísať do Omegy\r\nnenastavené (parameter sa nepošle) - nastaví sa podľa logiky Onixu (podľa nastavenia pre danú evidenciu v obchodnom cykle),\r\ntrue - nastaví sa, že príloha je synchronizovaná do Omegy bez ohľadu na nastavenie v Onixe,\r\nfalse - nastaví sa, že príloha nie je synchronizovaná do Omegy, bez ohľadu na nastavenie v Onixe.",
+						"required": false,
+						"type": "boolean"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/internalaccounting/{variant}": {
+			"get": {
+				"tags": ["InternalAccounting"],
+				"summary": "Zoznam hodnôt interného rozúčtovania",
+				"operationId": "InternalAccounting_GetIA",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "variant",
+						"in": "path",
+						"description": "Typ interného rozúčtovania.(V rozmedzí 1 až 6)",
+						"required": true,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "Ns_Number",
+						"in": "query",
+						"description": "Filter: Číslo interného rozúčtovania \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoInternalAccounting_get"
+							},
+							"xml": {
+								"name": "DtoInternalAccounting",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			},
+			"post": {
+				"tags": ["InternalAccounting"],
+				"summary": "Pridá jedno interné rozúčtovanie konkrétneho typu určeného podľa parametra variant. \r\nDáta interného rozúčtovania sa nachádzajú v \"body\" requestu.\r\nV prípade, že pridávané interné rozúčtovanie už existuje vykoná sa akcia edit a prebehne aktualizácia údajov.",
+				"operationId": "InternalAccounting_AddOrEditInternalAccounting",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "variant",
+						"in": "path",
+						"description": "Typ interného rozúčtovania.(V rozmedzí 1 až 6)",
+						"required": true,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "internalAccounting",
+						"in": "body",
+						"description": "Dáta interného rozúčtovania.",
+						"required": true,
+						"schema": {
+							"$ref": "#/definitions/DtoInternalAccounting_post"
+						}
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/partners": {
+			"get": {
+				"tags": ["Partners"],
+				"summary": "Vracia zoznam všetkých partnerov.",
+				"description": "Bez parametrov stránkovania vracia samostatné pole partnerov.\r\n            \r\nS parametrami stránkovania vracia obal s metadátami:\r\n{ \"data\": [...], \"nextCursor\": 52310, \"hasNext\": true, \"pageSize\": 100 }\r\n            \r\nPrechádzanie stránok: použiť nextCursor z response ako hodnotu parametra cursor v ďalšom requeste.\r\nKeď hasNext = false, neboli nájdené ďalšie záznamy.\r\nAk nextCursor chýba v response (null), zoznam je prázdny.",
+				"operationId": "Partners_GetPartners",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "tables",
+						"in": "query",
+						"description": "Zoznam podtabuliek partnera.<br>ALL - všetky podtabuľky<br>ADDRESSES - adresy<br>BANKACCOUNTS - bankové účty<br>CONTACTS - kontakty",
+						"required": false,
+						"items": {
+							"type": "string",
+							"enum": [
+								"ALL",
+								"ADDRESSES",
+								"BANKACCOUNTS",
+								"CONTACTS"
+							]
+						},
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "pageSize",
+						"in": "query",
+						"description": "Počet záznamov na stránku. Ak nie je zadaný, vráti sa celý zoznam.",
+						"required": false,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "cursor",
+						"in": "query",
+						"description": "Kurzor z predchádzajúcej stránky (hodnota nextCursor). Pre prvú stránku vynechať alebo zadať 0.",
+						"required": false,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "Ns_Number",
+						"in": "query",
+						"description": "Filter: Číslo partnera \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "Date_Changed",
+						"in": "query",
+						"description": "Filter: Dátum zmeny \r\nPre dátumové polia sú podporované intervalové operátory: gte, lte, gt, lt. Napr. \"gte:2024-01-01\" = GreaterThanOrEqual 2024-01-01.\nJe možné zadávať aj časovú zložku. Napr. \"gt:2024-01-01T12:00:00\" = GreaterThan 2024-01-01 12:00:00.\nZadanie bez intervalového operátora sa berie ako = Equals (celý deň od 00:00:00 do 23:59:59). Napr. \"2024-01-01\" = Between 2024-01-01 00:00:00 and 2024-01-01 23:59:59.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Zoznam partnerov (bez stránkovania)",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoPartners_get"
+							},
+							"xml": { "name": "DtoPartners", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					},
+					"200 (pageSize)": {
+						"description": "Stránkovaný zoznam partnerov (s pageSize)",
+						"schema": {
+							"$ref": "#/definitions/PagedResult_DtoPartners_get"
+						}
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			},
+			"post": {
+				"tags": ["Partners"],
+				"summary": "Pridá, alebo upraví jedného partnera. Dáta partnera sa nachádzajú v \"body\" requestu.",
+				"operationId": "Partners_AddOrEditPartner",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "partner",
+						"in": "body",
+						"description": "Dáta partnera.",
+						"required": true,
+						"schema": { "$ref": "#/definitions/DtoPartners_post" }
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/partners/list": {
+			"post": {
+				"tags": ["Partners"],
+				"summary": "Pridá, alebo upraví viacero partnerov. Dáta partnerov sa nachádzajú v \"body\" requestu.",
+				"operationId": "Partners_AddOrEditPartners",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "partners",
+						"in": "body",
+						"description": "Dáta partnerov.",
+						"required": true,
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoPartners_post"
+							},
+							"xml": { "name": "DtoPartners", "wrapped": true },
+							"type": "array"
+						}
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": { "$ref": "#/definitions/Result" },
+							"xml": { "name": "Result", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/pricinglists/partnerprices": {
+			"get": {
+				"tags": ["PricingLists"],
+				"summary": "Vracia zoznam všetkých individuálnych cien partnerov.",
+				"operationId": "PricingLists_GetPartnersPricingLists",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoPricingLists"
+							},
+							"xml": {
+								"name": "DtoPricingLists",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/pricinglists/partnerstockitemgroupprices": {
+			"get": {
+				"tags": ["PricingLists"],
+				"summary": "Vracia zoznam všetkých individuálnych cien partnerov za skupinu kariet.",
+				"operationId": "PricingLists_GetPartnersSIGroupPricingLists",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoPartnerSIGroupPricingLists"
+							},
+							"xml": {
+								"name": "DtoPartnerSIGroupPricingLists",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/pricinglists/catalogprices/{pricingCatalogCode}": {
+			"get": {
+				"tags": ["PricingLists"],
+				"summary": "Vracia zoznam všetkých cien z konkrétneho katalógového cenníka, cenník je určený na základe parametra pricingCatalogCode.",
+				"operationId": "PricingLists_GetCatalogPricingLists",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "pricingCatalogCode",
+						"in": "path",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "StockItem_Ns_Number",
+						"in": "query",
+						"description": "Filter: Číslo skladovej karty \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoCatalogPricingLists"
+							},
+							"xml": {
+								"name": "DtoCatalogPricingLists",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitembatchproperties": {
+			"get": {
+				"tags": ["StockItemBatchProperties"],
+				"summary": "Vracia zoznam všetkých vlastností dávok.",
+				"operationId": "StockItemBatchProperties_GetBatchProperties",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoBatchProperties"
+							},
+							"xml": {
+								"name": "DtoBatchProperties",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitembatchproperties/values": {
+			"get": {
+				"tags": ["StockItemBatchProperties"],
+				"summary": "Vracia zoznam hodnôt konkrétnej vlastnosti dávok.",
+				"operationId": "StockItemBatchProperties_GetBatchPropertyValues",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "batchPropertyIdRecord",
+						"in": "query",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoBatchPropertyValues"
+							},
+							"xml": {
+								"name": "DtoBatchPropertyValues",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitemgroups": {
+			"get": {
+				"tags": ["StockItemGroups"],
+				"summary": "Vracia zoznam všetkých skupín skladových kariet.",
+				"operationId": "StockItemGroups_GetStockItemGroups",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "tables",
+						"in": "query",
+						"description": "Zoznam podtabuliek skupín skladovej karty<br>ALL - všetky podtabuľky<br>ENCLOSURES - prílohy<br>",
+						"required": false,
+						"items": {
+							"type": "string",
+							"enum": ["ALL", "ENCLOSURES"]
+						},
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "Name",
+						"in": "query",
+						"description": "Filter: Názov skupiny \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "Date_Changed",
+						"in": "query",
+						"description": "Filter: Dátum zmeny \r\nPre dátumové polia sú podporované intervalové operátory: gte, lte, gt, lt. Napr. \"gte:2024-01-01\" = GreaterThanOrEqual 2024-01-01.\nJe možné zadávať aj časovú zložku. Napr. \"gt:2024-01-01T12:00:00\" = GreaterThan 2024-01-01 12:00:00.\nZadanie bez intervalového operátora sa berie ako = Equals (celý deň od 00:00:00 do 23:59:59). Napr. \"2024-01-01\" = Between 2024-01-01 00:00:00 and 2024-01-01 23:59:59.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": { "$ref": "#/definitions/DtoGroups" },
+							"xml": { "name": "DtoGroups", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitems": {
+			"get": {
+				"tags": ["StockItems"],
+				"summary": "Vracia zoznam všetkých skladových kariet.",
+				"description": "Bez parametrov stránkovania vracia samostatné pole skladových kariet.\r\n            \r\nS parametrami stránkovania vracia obal s metadátami:\r\n{ \"data\": [...], \"nextCursor\": 52310, \"hasNext\": true, \"pageSize\": 100 }\r\n            \r\nPri stránkovaní je POVINNÝ parameter itemType, ktorý určuje typ karty:\r\n1 = skladová karta, 2 = služba, 6 = zariadenie.\r\nKaždý typ sa stránkuje samostatne – cursor je platný len v rámci jedného typu.\r\n            \r\nPrechádzanie stránok: použiť nextCursor z response ako hodnotu parametra cursor v ďalšom requeste.\r\nKeď hasNext = false, neboli nájdené ďalšie záznamy.\r\nAk nextCursor chýba v response (null), zoznam je prázdny.",
+				"operationId": "StockItems_GetStockItems",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "tables",
+						"in": "query",
+						"description": "Zoznam podtabuliek skladovej karty.<br>ALL - všetky podtabuľky<br>ACCESSORIES - príslušenstvo<br>ALTERNATIVES - alternatívy<br>ENCLOSURES - prílohy<br>GROUPS - skupiny<br>PARAMS - parametre<br>CODES - kódy<br>PARTNERS - dodávatelia<br>MU - merné jednotky",
+						"required": false,
+						"items": {
+							"type": "string",
+							"enum": [
+								"ALL",
+								"ACCESSORIES",
+								"ALTERNATIVES",
+								"ENCLOSURES",
+								"GROUPS",
+								"PARAMS",
+								"CODES",
+								"PARTNERS",
+								"MU"
+							]
+						},
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "itemType",
+						"in": "query",
+						"description": "Povinný pri stránkovaní. Typ karty: 1=skladová karta, 2=služba, 6=zariadenie.",
+						"required": false,
+						"type": "integer",
+						"format": "int32",
+						"default": 0
+					},
+					{
+						"name": "pageSize",
+						"in": "query",
+						"description": "Počet záznamov na stránku. Ak nie je zadaný, vráti sa celý zoznam.",
+						"required": false,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "cursor",
+						"in": "query",
+						"description": "Kurzor z predchádzajúcej stránky (hodnota nextCursor). Pre prvú stránku vynechať alebo zadať 0.",
+						"required": false,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "StockCode",
+						"in": "query",
+						"description": "Filter: Kód skladu \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"items": { "type": "string", "default": "" },
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "SupplierCode",
+						"in": "query",
+						"description": "Filter: Kód dodávateľa \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"items": { "type": "string", "default": "" },
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "Date_Changed",
+						"in": "query",
+						"description": "Filter: Dátum zmeny \r\nPre dátumové polia sú podporované intervalové operátory: gte, lte, gt, lt. Napr. \"gte:2024-01-01\" = GreaterThanOrEqual 2024-01-01.\nJe možné zadávať aj časovú zložku. Napr. \"gt:2024-01-01T12:00:00\" = GreaterThan 2024-01-01 12:00:00.\nZadanie bez intervalového operátora sa berie ako = Equals (celý deň od 00:00:00 do 23:59:59). Napr. \"2024-01-01\" = Between 2024-01-01 00:00:00 and 2024-01-01 23:59:59.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Zoznam skladových kariet (bez stránkovania)",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoStockItems_get"
+							},
+							"xml": { "name": "DtoStockItems", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"400": {
+						"description": "itemType je povinný pri stránkovaní a musí byť 1, 2 alebo 6"
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					},
+					"200 (pageSize)": {
+						"description": "Stránkovaný zoznam skladových kariet (s pageSize)",
+						"schema": {
+							"$ref": "#/definitions/PagedResult_DtoStockItems_get"
+						}
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			},
+			"post": {
+				"tags": ["StockItems"],
+				"summary": "Pridá jednu skladovú kartu.\r\nDáta skladovej karty sa nachádzajú v \"body\" requestu.\r\nV prípade, že pridávaná karta už existuje vykoná sa akcia edit a prebehne aktualizácia jej údajov.",
+				"operationId": "StockItems_AddOrEditStockItem",
+				"consumes": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"
+				],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "stockItem",
+						"in": "body",
+						"description": "Dáta skladovej karty.",
+						"required": true,
+						"schema": { "$ref": "#/definitions/DtoStockItems_post" }
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": { "$ref": "#/definitions/Result" }
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitems/propertyBalances/{stockItemId}/{stockId}/{propertyNumber}": {
+			"get": {
+				"tags": ["StockItems"],
+				"summary": "Vracia zostatky skladovej karty, na konkrétnom sklade pre danú vlastnosť dávky.",
+				"operationId": "StockItems_GetStockItemBalanceForBatchProperty",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "stockItemId",
+						"in": "path",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "stockId",
+						"in": "path",
+						"required": true,
+						"type": "integer",
+						"format": "int64"
+					},
+					{
+						"name": "propertyNumber",
+						"in": "path",
+						"required": true,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "PropertyText",
+						"in": "query",
+						"description": "Filter: Hodnota vlastnosti dávky \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"items": { "type": "string", "default": "" },
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoStockItemPropBalance"
+							},
+							"xml": {
+								"name": "DtoStockItemPropBalance",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitems/propertyBalancesAll/{propertyNumber}": {
+			"get": {
+				"tags": ["StockItems"],
+				"summary": "Vracia zostatky pre všetky skladové karty, na všetkých skladoch pre danú vlastnosť dávky.",
+				"operationId": "StockItems_GetAllBalanceForBatchProperty",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "propertyNumber",
+						"in": "path",
+						"required": true,
+						"type": "integer",
+						"format": "int32"
+					},
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "PropertyText",
+						"in": "query",
+						"description": "Filter: Hodnota vlastnosti dávky \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"items": { "type": "string", "default": "" },
+						"collectionFormat": "multi",
+						"type": "array"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": {
+								"$ref": "#/definitions/DtoStockItemPropBalance"
+							},
+							"xml": {
+								"name": "DtoStockItemPropBalance",
+								"wrapped": true
+							},
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stockitems/balances": {
+			"get": {
+				"tags": ["StockItems"],
+				"summary": "Vracia zostatky pre všetky skladové karty, na všetkých skladoch.",
+				"operationId": "StockItems_GetBalances",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "SerialNumber",
+						"in": "query",
+						"description": "Filter: Výrobné číslo \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "StockName",
+						"in": "query",
+						"description": "Filter: Názov skladu \r\nAko filter je možné použiť ktorékoľvek pole z modelu.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "DateManufacture",
+						"in": "query",
+						"description": "Filter: Dátum výroby \r\nPre dátumové polia sú podporované intervalové operátory: gte, lte, gt, lt. Napr. \"gte:2024-01-01\" = GreaterThanOrEqual 2024-01-01.\nJe možné zadávať aj časovú zložku. Napr. \"gt:2024-01-01T12:00:00\" = GreaterThan 2024-01-01 12:00:00.\nZadanie bez intervalového operátora sa berie ako = Equals (celý deň od 00:00:00 do 23:59:59). Napr. \"2024-01-01\" = Between 2024-01-01 00:00:00 and 2024-01-01 23:59:59.",
+						"required": false,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": { "$ref": "#/definitions/DtoBalance" },
+							"xml": { "name": "DtoBalance", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		},
+		"/api/v1/stocks": {
+			"get": {
+				"tags": ["Stocks"],
+				"summary": "Vracia zoznam všetkých skladov.",
+				"operationId": "Stocks_GetStocks",
+				"consumes": [],
+				"produces": [
+					"application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"
+				],
+				"parameters": [
+					{
+						"name": "DatabasePath",
+						"in": "header",
+						"description": "Cesta ku zdrojovej ONIX databáze.",
+						"required": true,
+						"type": "string"
+					},
+					{
+						"name": "$select",
+						"in": "query",
+						"description": "Definovanie polí, ktoré majú byť vo výsledku volania (JSON). Zadávajte ako názvy stĺpcov z modelu oddelené čiarkou. V prípade podzáznamov tabuľky zadávajte ako NazovPodtabulky.NazovPola.",
+						"required": false,
+						"type": "string"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"items": { "$ref": "#/definitions/DtoStocks" },
+							"xml": { "name": "DtoStocks", "wrapped": true },
+							"type": "array"
+						}
+					},
+					"401": {
+						"description": "Unauthorized: Autorizácia neúspešná. Pravdepodobne nebol zadaný správny autorizačný token."
+					},
+					"404": {
+						"description": "NotFound: Zvolená adresa (Endpoint) neexistuje."
+					},
+					"500": {
+						"description": "InternalServerError: Interná chyba servera."
+					},
+					"503": {
+						"description": "ServiceUnavailable: Služba je vyťažená. Opakujte požiadavku neskôr (viď. retry-after v hlavičke)."
+					}
+				},
+				"security": [{ "Authorization": [] }]
+			}
+		}
+	},
+	"definitions": {
+		"PagedResult_DtoDocument_get": {
+			"title": "PagedResult_DtoDocument_get",
+			"description": "Obal pre stránkovaný response. Vracia sa len vtedy, keď sú v requeste prítomné\r\nparametre stránkovania (pageSize, cursor a v prípade StockItems aj itemType). Bez parametrov stránkovania sa vracia pôvodný array.",
+			"properties": {
+				"Data": {
+					"description": "Zoznam záznamov aktuálnej stránky.",
+					"items": { "$ref": "#/definitions/DtoDocument_get" },
+					"xml": { "name": "DtoDocument", "wrapped": true },
+					"type": "array"
+				},
+				"NextCursor": {
+					"description": "Hodnota kurzora pre načítanie ďalšej stránky. Použiť ako hodnotu parametra cursor\r\nv nasledujúcom requeste. Ak je null, neexistujú ďalšie záznamy.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"HasNext": {
+					"description": "Indikuje, či existujú ďalšie záznamy za aktuálnou stránkou.\r\nAk je false, toto je posledná stránka.",
+					"type": "boolean"
+				},
+				"PageSize": {
+					"description": "Veľkosť stránky použitá pri tomto requeste.",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "PagedResult`1" },
+			"type": "object"
+		},
+		"DtoDocument_get": {
+			"title": "DtoDocument_get",
+			"description": "DTO trieda pre doklad.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Doc_Description": {
+					"description": "Poznámka.",
+					"type": "string"
+				},
+				"Introduction_Text": {
+					"description": "Úvodný text.",
+					"type": "string"
+				},
+				"Final_Text": {
+					"description": "Záverečný text.",
+					"type": "string"
+				},
+				"Delivery_Text": {
+					"description": "Dodacie a platobné podmienky.",
+					"type": "string"
+				},
+				"Subject": { "description": "Predmet.", "type": "string" },
+				"Date_Document": {
+					"description": "Dátum vyhotovenia dokladu.\r\nRok dátumu slúži ako párovacie kritérium dokladu. Ak dátum nie je zadaný, pri párovaní sa ignoruje a doklad sa hľadá medzi všetkými dokladmi.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Admission": {
+					"description": "Dátum prijatia.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Due": {
+					"description": "Dátum splatnosti.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Chargebility_Date": {
+					"description": "Dátum vzniku daňovej povinnosti.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Vatrate": {
+					"description": "Dátum pre sadzby DPH.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Release": {
+					"description": "Dátum a čas výdaja zo skladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Exp_Realization": {
+					"description": "Dátum predpokladanej realizácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Realization": {
+					"description": "Dátum skutočnej realizácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Delivery_Date": {
+					"description": "Dátum dodania.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Receive": {
+					"description": "Dátum a čas príjmu na sklad.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Validity": {
+					"description": "Dátum platnosti dokladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Reservation_Doc": {
+					"description": "Dátum rezervácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Changed": {
+					"description": "História - dátum zmeny dokladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Transport_Type": {
+					"description": "Spôsob dopravy.",
+					"type": "string"
+				},
+				"Payment_Type": {
+					"description": "Forma úhrady.",
+					"type": "string"
+				},
+				"Exchange_Rate": {
+					"description": "Kurz meny dokladu.\r\nPri editácii dokladu ho nie je možné zmeniť.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum": {
+					"description": "Suma v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum_Lc": {
+					"description": "Suma dokladu v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum_Vat": {
+					"description": "Suma s DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum_Vat_Lc": {
+					"description": "Suma s DPH v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Payment_Remaining": {
+					"description": "Zostatok k úhrade s DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Payment_Status": {
+					"description": "Suma úhrady s DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Payment_Status_Lc": {
+					"description": "Suma úhrady s DPH v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Curr": {
+					"description": "Mena dokladu.\r\nPri editácii dokladu ju nie je možné zmeniť.",
+					"type": "string"
+				},
+				"Stock_Transfer_Name": {
+					"description": "Cieľový sklad názov - prevodka.",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Ns_Evid_Code": {
+					"description": "Kód evidencie. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Číslo dokladu. Slúži ako párovacie kritérium dokladu.",
+					"type": "string"
+				},
+				"Account_Number": {
+					"description": "Číslo účtu (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Variable_Symbol": {
+					"description": "Variabilný symbol.",
+					"type": "string"
+				},
+				"Specific_Symbol": {
+					"description": "Špecifický symbol.",
+					"type": "string"
+				},
+				"Bank_Code": {
+					"description": "Kód banky (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Constant_Symbol": {
+					"description": "Konštantný symbol.",
+					"type": "string"
+				},
+				"External_Number": {
+					"description": "Externé číslo dokladu.",
+					"type": "string"
+				},
+				"Iban": {
+					"description": "Číslo účtu vo formáte IBAN (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Swift": {
+					"description": "SWIFT kód banky (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Total_Price_Calculation": {
+					"description": "Spôsob výpočtu celkovej sumy dokladu.\r\n1 - Bez DPH,\r\n2 - S DPH.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [1, 2]
+				},
+				"Document_State": {
+					"description": "Stav dokladu.",
+					"type": "string"
+				},
+				"Ns_Number_Partner": {
+					"description": "Číslo partnera.",
+					"type": "string"
+				},
+				"Partner_Ean": {
+					"description": "EAN partnera.",
+					"type": "string"
+				},
+				"Partner_Reg": {
+					"description": "IČO partnera.",
+					"type": "string"
+				},
+				"Partner_Tax": {
+					"description": "DIČ partnera.",
+					"type": "string"
+				},
+				"Partner_Vat_No": {
+					"description": "Partner - IČ DPH.",
+					"type": "string"
+				},
+				"Partner_Center": {
+					"description": "Partner - stredisko.",
+					"type": "string"
+				},
+				"Partner_Department": {
+					"description": "Partner - prevádzka.",
+					"type": "string"
+				},
+				"Partner_Street": {
+					"description": "Partner - Fakturačná adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Street_No": {
+					"description": "Partner - Fakturačná adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Postcode": {
+					"description": "Partner - Fakturačná adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_City": {
+					"description": "Partner - Fakturačná adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_State": {
+					"description": "Partner - Fakturačná adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Billing_Place_Ean": {
+					"description": "Partner - Fakturačná adresa - EAN fakturačného miesta.",
+					"type": "string"
+				},
+				"Partner_Pa_Street": {
+					"description": "Partner - Korešpondenčná adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Pa_Street_No": {
+					"description": "Partner - Korešpondenčná adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Pa_Postcode": {
+					"description": "Partner - Korešpondenčná adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_Pa_City": {
+					"description": "Partner - Korešpondenčná adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_Pa_State": {
+					"description": "Partner - Korešpondenčná adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Da_Street": {
+					"description": "Partner - Dodacia adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Da_Street_No": {
+					"description": "Partner - Dodacia adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Da_Postcode": {
+					"description": "Partner - Dodacia adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_Da_City": {
+					"description": "Partner - Dodacia adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_Da_State": {
+					"description": "Partner - Dodacia adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Da_Delivery_Place_Ean": {
+					"description": "Partner - Dodacia adresa - EAN miesta dodania (pobočky).",
+					"type": "string"
+				},
+				"Partner_Name": {
+					"description": "Názov partnera.",
+					"type": "string"
+				},
+				"Partner_Pa_Name": {
+					"description": "Partner - Korešpondenčná adresa - názov",
+					"type": "string"
+				},
+				"Partner_Da_Name": {
+					"description": "Partner - Dodacia adresa - názov",
+					"type": "string"
+				},
+				"Original_Number": {
+					"description": "Číslo pôvodného dokladu (platné pre dobropisy).",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Kľúč záznamu v externej DB. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Partner_Email": {
+					"description": "Partner - email.",
+					"type": "string"
+				},
+				"Partner_FirstName": {
+					"description": "Partner - meno.",
+					"type": "string"
+				},
+				"Partner_Surname": {
+					"description": "Partner - priezvisko.",
+					"type": "string"
+				},
+				"Partner_Telephone_Number": {
+					"description": "Partner - telefón.",
+					"type": "string"
+				},
+				"Lock": {
+					"description": "Zámok dokladu - môže obsahovať hodnoty: zamknutý, odomknutý.\r\nPri editácii dokladu nie je možné zmeniť hodnotu zamknutý na odomknutý.",
+					"type": "string"
+				},
+				"User": {
+					"description": "Používateľ - obchodník z dokladu.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - prevodka - kód.",
+					"type": "string"
+				},
+				"Commission": {
+					"description": "Číslo obchodného prípadu.",
+					"type": "string"
+				},
+				"Weight_Stock_Items": {
+					"description": "Celková hmotnosť dokladu (kg).",
+					"type": "number",
+					"format": "double"
+				},
+				"Items": {
+					"description": "Položky dokladu.",
+					"items": { "$ref": "#/definitions/DtoDocumentItem_get" },
+					"xml": { "name": "I_DOCUMENT_ITEMS", "wrapped": true },
+					"type": "array"
+				},
+				"Enclosures": {
+					"items": { "$ref": "#/definitions/DtoDocumentEnclosure" },
+					"xml": { "name": "DtoDocumentEnclosure", "wrapped": true },
+					"type": "array"
+				},
+				"Pv_Accept_Composites": {
+					"description": "Príznak, či sa na doklade pracuje so skladačkou, podpoložkami, alebo sa toto nastavenie preberá z karty.\r\n Composites - Skladačky\r\n SubItems - Podpoložky\r\n FromStockItem - Prebrať z karty",
+					"type": "string"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoDocument" },
+			"type": "object"
+		},
+		"DtoDocument_post": {
+			"title": "DtoDocument_post",
+			"description": "DTO trieda pre doklad.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Externý identifikátor slúži na komunikáciu cez API. \r\nIdentifikátor bude vrátený v odpovedi na request, aby ste dokázali identifikovať ku ktorému záznamu patria odpovede poslané ako response.\r\nHodnota sa neukladá, ale mala by byť jedinečná.",
+					"type": "string"
+				},
+				"Doc_Description": {
+					"description": "Poznámka.",
+					"type": "string"
+				},
+				"Doc_Description_Html": {
+					"description": "Poznámka s HTML formátovaným textom.\r\nPozor: Je potrebné, aby vkladaný html text bol správne escape-nutý pre json.\r\nDá sa použiť napríklad online nástroj: https://www.freeformatter.com/json-escape.html",
+					"type": "string"
+				},
+				"Introduction_Text": {
+					"description": "Úvodný text.",
+					"type": "string"
+				},
+				"Final_Text": {
+					"description": "Záverečný text.",
+					"type": "string"
+				},
+				"Delivery_Text": {
+					"description": "Dodacie a platobné podmienky.",
+					"type": "string"
+				},
+				"Subject": { "description": "Predmet.", "type": "string" },
+				"Date_Document": {
+					"description": "Dátum vyhotovenia dokladu.\r\nRok dátumu slúži ako párovacie kritérium dokladu. Ak dátum nie je zadaný, pri párovaní sa ignoruje a doklad sa hľadá medzi všetkými dokladmi.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Admission": {
+					"description": "Dátum prijatia.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Due": {
+					"description": "Dátum splatnosti.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Chargebility_Date": {
+					"description": "Dátum vzniku daňovej povinnosti.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Vatrate": {
+					"description": "Dátum pre sadzby DPH.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Release": {
+					"description": "Dátum a čas výdaja zo skladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Exp_Realization": {
+					"description": "Dátum predpokladanej realizácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Realization": {
+					"description": "Dátum skutočnej realizácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Delivery_Date": {
+					"description": "Dátum dodania.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Receive": {
+					"description": "Dátum a čas príjmu na sklad.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Validity": {
+					"description": "Dátum platnosti dokladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Reservation_Doc": {
+					"description": "Dátum rezervácie.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Transport_Type": {
+					"description": "Spôsob dopravy.",
+					"type": "string"
+				},
+				"Payment_Type": {
+					"description": "Forma úhrady.",
+					"type": "string"
+				},
+				"Exchange_Rate": {
+					"description": "Kurz meny dokladu.\r\nPri editácii dokladu ho nie je možné zmeniť.",
+					"type": "number",
+					"format": "double"
+				},
+				"Curr": {
+					"description": "Mena dokladu.\r\nPri editácii dokladu ju nie je možné zmeniť.",
+					"type": "string"
+				},
+				"Stock_Transfer_Name": {
+					"description": "Cieľový sklad názov - prevodka.",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Ns_Evid_Code": {
+					"description": "Kód evidencie. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Číslo dokladu. Slúži ako párovacie kritérium dokladu.",
+					"type": "string"
+				},
+				"Account_Number": {
+					"description": "Číslo účtu (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Variable_Symbol": {
+					"description": "Variabilný symbol.",
+					"type": "string"
+				},
+				"Specific_Symbol": {
+					"description": "Špecifický symbol.",
+					"type": "string"
+				},
+				"Bank_Code": {
+					"description": "Kód banky (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Constant_Symbol": {
+					"description": "Konštantný symbol.",
+					"type": "string"
+				},
+				"External_Number": {
+					"description": "Externé číslo dokladu.",
+					"type": "string"
+				},
+				"Iban": {
+					"description": "Číslo účtu vo formáte IBAN (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Swift": {
+					"description": "SWIFT kód banky (predajné doklady - môj účet, nákupné doklady - účet partnera).",
+					"type": "string"
+				},
+				"Total_Price_Calculation": {
+					"description": "Spôsob výpočtu celkovej sumy dokladu.\r\n1 - Bez DPH,\r\n2 - S DPH.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [1, 2]
+				},
+				"Document_State": {
+					"description": "Stav dokladu.",
+					"type": "string"
+				},
+				"Ns_Number_Partner": {
+					"description": "Číslo partnera.",
+					"type": "string"
+				},
+				"Partner_Ean": {
+					"description": "EAN partnera.",
+					"type": "string"
+				},
+				"Partner_Reg": {
+					"description": "IČO partnera.",
+					"type": "string"
+				},
+				"Partner_Tax": {
+					"description": "DIČ partnera.",
+					"type": "string"
+				},
+				"Partner_Vat_No": {
+					"description": "Partner - IČ DPH.",
+					"type": "string"
+				},
+				"Partner_Center": {
+					"description": "Partner - stredisko.",
+					"type": "string"
+				},
+				"Partner_Department": {
+					"description": "Partner - prevádzka.",
+					"type": "string"
+				},
+				"Partner_Street": {
+					"description": "Partner - Fakturačná adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Street_No": {
+					"description": "Partner - Fakturačná adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Postcode": {
+					"description": "Partner - Fakturačná adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_City": {
+					"description": "Partner - Fakturačná adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_State": {
+					"description": "Partner - Fakturačná adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Billing_Place_Ean": {
+					"description": "Partner - Fakturačná adresa - EAN fakturačného miesta.",
+					"type": "string"
+				},
+				"Partner_Pa_Street": {
+					"description": "Partner - Korešpondenčná adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Pa_Street_No": {
+					"description": "Partner - Korešpondenčná adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Pa_Postcode": {
+					"description": "Partner - Korešpondenčná adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_Pa_City": {
+					"description": "Partner - Korešpondenčná adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_Pa_State": {
+					"description": "Partner - Korešpondenčná adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Da_Street": {
+					"description": "Partner - Dodacia adresa - ulica.",
+					"type": "string"
+				},
+				"Partner_Da_Street_No": {
+					"description": "Partner - Dodacia adresa - ulica číslo.",
+					"type": "string"
+				},
+				"Partner_Da_Postcode": {
+					"description": "Partner - Dodacia adresa - PSČ.",
+					"type": "string"
+				},
+				"Partner_Da_City": {
+					"description": "Partner - Dodacia adresa - mesto.",
+					"type": "string"
+				},
+				"Partner_Da_State": {
+					"description": "Partner - Dodacia adresa - štát.",
+					"type": "string"
+				},
+				"Partner_Da_Delivery_Place_Ean": {
+					"description": "Partner - Dodacia adresa - EAN miesta dodania (pobočky).",
+					"type": "string"
+				},
+				"Partner_Name": {
+					"description": "Názov partnera.",
+					"type": "string"
+				},
+				"Partner_Pa_Name": {
+					"description": "Partner - Korešpondenčná adresa - názov",
+					"type": "string"
+				},
+				"Partner_Da_Name": {
+					"description": "Partner - Dodacia adresa - názov",
+					"type": "string"
+				},
+				"Original_Number": {
+					"description": "Číslo pôvodného dokladu (platné pre dobropisy).",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Kľúč záznamu v externej DB. Ak je zadaný tak slúži ako párovacie kritérium.",
+					"type": "string"
+				},
+				"Partner_Type": {
+					"description": "Typ partnera.\r\n-2 - Občan,\r\n1 - Podnikateľ - fyzická osoba,\r\n2 - Podnikateľ - právnická osoba.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [-2, 1, 2, 0]
+				},
+				"Partner_Email": {
+					"description": "Partner - email.",
+					"type": "string"
+				},
+				"Partner_FirstName": {
+					"description": "Partner - meno.",
+					"type": "string"
+				},
+				"Partner_Surname": {
+					"description": "Partner - priezvisko.",
+					"type": "string"
+				},
+				"Partner_Telephone_Number": {
+					"description": "Partner - telefón.",
+					"type": "string"
+				},
+				"Partner_Vat_Payer": {
+					"description": "Partner - Platiteľ DPH.\r\n1 - Zapnuté\r\n2 - Vypnuté",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Partner_Guid_Ext": {
+					"description": "Partner - kľúč záznamu v externej DB..",
+					"type": "string"
+				},
+				"Stock_Predefined_Name": {
+					"description": "Prednastavený defaultný sklad - názov.",
+					"type": "string"
+				},
+				"Stock_Predefined_Code": {
+					"description": "Prednastavený defaultný sklad - kód.",
+					"type": "string"
+				},
+				"Stock_Transfer_Code": {
+					"description": "Cieľový sklad kód - prevodka.",
+					"type": "string"
+				},
+				"Lock": {
+					"description": "Zámok dokladu - môže obsahovať hodnoty: zamknutý, odomknutý.\r\nPri editácii dokladu nie je možné zmeniť hodnotu zamknutý na odomknutý.",
+					"type": "string"
+				},
+				"User": {
+					"description": "Používateľ - obchodník z dokladu.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Doc_Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Doc_Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - prevodka - kód.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - prevodka - názov.",
+					"type": "string"
+				},
+				"Doc_Transfer_Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - prevodka - kód.",
+					"type": "string"
+				},
+				"Commission": {
+					"description": "Číslo obchodného prípadu.",
+					"type": "string"
+				},
+				"Items": {
+					"description": "Položky dokladu.",
+					"items": { "$ref": "#/definitions/DtoDocumentItem_post" },
+					"xml": { "name": "I_DOCUMENT_ITEMS", "wrapped": true },
+					"type": "array"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoDocument" },
+			"type": "object"
+		},
+		"DtoDocumentItem_get": {
+			"title": "DtoDocumentItem_get",
+			"description": "DTO trieda pre položku dokladu.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Stock_Items_Name": {
+					"description": "Názov skladovej karty, služby, voľnej položky.",
+					"type": "string"
+				},
+				"Stock_Name": {
+					"description": "Názov skladu.",
+					"type": "string"
+				},
+				"Plu": {
+					"description": "PLU.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Is_Composite": {
+					"description": "Príznak, či je skladová karta skladačka.\r\n-1 - Je skladačka.\r\n0 - Nie je skladačka.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Is_Sub_Item": {
+					"description": "Príznak, či daná položka je podpoložka skladačky.",
+					"type": "boolean"
+				},
+				"Date_Manufacture": {
+					"description": "Dátum výroby.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Expiration": {
+					"description": "Záručná doba od dodávateľa .",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Serial_Number": {
+					"description": "Výrobné číslo / šarža.",
+					"type": "string"
+				},
+				"Properties_Text": {
+					"description": "Vlastnosti.",
+					"type": "string"
+				},
+				"User_Amount": {
+					"description": "Množstvo.",
+					"type": "number",
+					"format": "double"
+				},
+				"Description": { "description": "Popis.", "type": "string" },
+				"Price_Issued_Stock": {
+					"description": "Jednotková skladová cena výdaja.",
+					"type": "number",
+					"format": "double"
+				},
+				"Date_Expiration_For_Buyer": {
+					"description": "Záručná doba pre odberateľa.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Price_Issued_Stock_Sum": {
+					"description": "Skladová cena spolu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Price_Manager_Sum": {
+					"description": "Manažérska cena spolu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Value_Name_1": {
+					"description": "Vlastnosť 1 - názov.",
+					"type": "string"
+				},
+				"Value_Name_2": {
+					"description": "Vlastnosť 2 - názov.",
+					"type": "string"
+				},
+				"Value_Name_3": {
+					"description": "Vlastnosť 3 - názov.",
+					"type": "string"
+				},
+				"Value_Name_4": {
+					"description": "Vlastnosť 4 - názov.",
+					"type": "string"
+				},
+				"Value_Name_5": {
+					"description": "Vlastnosť 5 - názov.",
+					"type": "string"
+				},
+				"Value_Name_6": {
+					"description": "Vlastnosť 6 - názov.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_1": {
+					"description": "Vlastnosť 1 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_2": {
+					"description": "Vlastnosť 2 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_3": {
+					"description": "Vlastnosť 3 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_4": {
+					"description": "Vlastnosť 4 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_5": {
+					"description": "Vlastnosť 5 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Value_Transfer_Name_6": {
+					"description": "Vlastnosť 6 - názov - presun v rámci jedného skladu.",
+					"type": "string"
+				},
+				"Item_Type": {
+					"description": "Typ položky.\r\n0 - Nedefinované\r\n1 - Skladová karta\r\n2 - Služba\r\n5 - Voľná položka\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 5, 6]
+				},
+				"Price_Locking_Flags": {
+					"description": "Bitové pole príznakov uzamknutia cien a zliav.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Unit_Price_Rounding_Type": {
+					"description": "Typ zaokrúhlenia jednotkovej ceny po zľave.\r\n0 - Nedefinované\r\n1 - Prirodzene\r\n2 - Nahor\r\n3 - Nadol\r\n4 - Nezaokrúhľovať",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3, 4]
+				},
+				"Unit_Price_Rounding_Number": {
+					"description": "Zaokrúhlenie jednotkovej ceny po zľave.\r\n0 - Nedefinované,\r\n1 - 0.0001,\r\n2 - 0.001,\r\n3 - 0.01,\r\n4 - 0,1.\r\n5 - 0.5,\r\n6 - 1,\r\n7 - 5,\r\n8 - 10,\r\n9 - 50.\r\n10 - 100,\r\n11 - 500,\r\n12 - 1000,\r\n13 - 0.00001,\r\n14 - 0.000001.\r\n15 - 0.0000001.\r\n16 - 0.0000001.\r\n17 - 0.05.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [
+						0,
+						1,
+						2,
+						3,
+						17,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				},
+				"Sum_Rounding_Type": {
+					"description": "Zaokrúhlenie sumy spolu.\r\n0 - Nedefinované,\r\n1 - Prirodzene,\r\n2 - Nahor,\r\n3 - Nadol,\r\n4 - Nezaokrúhľovať.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3, 4]
+				},
+				"Sum_Rounding_Number": {
+					"description": "Typ zaokrúhlenia sumy spolu.\r\n0 - Nedefinované,\r\n1 - 0.0001,\r\n2 - 0.001,\r\n3 - 0.01,\r\n4 - 0,1.\r\n5 - 0.5,\r\n6 - 1,\r\n7 - 5,\r\n8 - 10,\r\n9 - 50.\r\n10 - 100,\r\n11 - 500,\r\n12 - 1000,\r\n13 - 0.00001,\r\n14 - 0.000001.\r\n15 - 0.0000001.\r\n16 - 0.0000001.\r\n17 - 0.05.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [
+						0,
+						1,
+						2,
+						3,
+						17,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				},
+				"Amount_Unit": {
+					"description": "Jednotkové množstvo položky skladačky.",
+					"type": "number",
+					"format": "double"
+				},
+				"Measure_Unit": {
+					"description": "Merná jednotka.",
+					"type": "string"
+				},
+				"Stock_Items_Mu_Coefficient": {
+					"description": "Koeficient prepočtu vybraného balenia k hlavnému baleniu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Id_Linked_Item": {
+					"description": "Identifikátor prepojených položiek.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Id_Source_Document": {
+					"description": "Identifikátor zdrojového dokladu, z ktorého pochádza položka.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Cover_Is_Compulsory": {
+					"description": "Obal je povinný.\r\n-1 - Áno,\r\n0 - Nie.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Doc_Discount_Lc": {
+					"description": "Zľava za doklad bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Date_Reservation": {
+					"description": "Dátum rezervácie na sklade.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Reservated_Amount": {
+					"description": "Rezervované množstvo.",
+					"type": "number",
+					"format": "double"
+				},
+				"Doc_Discount_Vat_Lc": {
+					"description": "Zľava za doklad s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Account_Md_Syn": {
+					"description": "Strana MÁ DAŤ syntetika.",
+					"type": "string"
+				},
+				"Account_Md_Anl": {
+					"description": "Strana MÁ DAŤ analytika.",
+					"type": "string"
+				},
+				"Account_Dal_Syn": {
+					"description": "Strana DAL syntetika.",
+					"type": "string"
+				},
+				"Account_Dal_Anl": {
+					"description": "Strana DAL analytika.",
+					"type": "string"
+				},
+				"Ist_Code": {
+					"description": "Intrastat - kód kombinovanej nomenklatúry.",
+					"type": "string"
+				},
+				"Ist_Weight": {
+					"description": "Intrastat - kód KG.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Dmj": {
+					"description": "Intrastat - DMJ.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Description": {
+					"description": "Intrastat - Opis tovaru.",
+					"type": "string"
+				},
+				"Stock_Items_Ns_Number": {
+					"description": "Číslo skladovej karty, služby, voľnej položky.",
+					"type": "string"
+				},
+				"Stock_Code": {
+					"description": "Kód skladu.",
+					"type": "string"
+				},
+				"Stock_Ean": { "description": "EAN skladu.", "type": "string" },
+				"Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Deducted_Invoices": {
+					"description": "Suma odpočítanej čiastky na riadnych faktúrach.",
+					"type": "number",
+					"format": "double"
+				},
+				"Deducted_Vat": {
+					"description": "Suma odpočítanej DPH .",
+					"type": "number",
+					"format": "double"
+				},
+				"Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"Item_Name": {
+					"description": "Vlastný názov položky.",
+					"type": "string"
+				},
+				"Unit_Price_Base": {
+					"description": "Jednotková cena bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Base_Vat": {
+					"description": "Jednotková cena s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount_Percent": {
+					"description": "Zľava bez DPH v percentách.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount": {
+					"description": "Zľava bez DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount_Vat": {
+					"description": "Zľava s DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price": {
+					"description": "Cena po zľave bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Vat": {
+					"description": "Cena po zľave s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum": {
+					"description": "Spolu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum_Vat": {
+					"description": "Spolu s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Price_Manager": {
+					"description": "Manažérska jednotková cena.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ordinal": {
+					"description": "Poradie položky v doklade.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Default_Measure_Ean_Code": {
+					"description": "EAN kód pre hlavnú mernú jednotku.",
+					"type": "string"
+				},
+				"Unit_Price_Lc": {
+					"description": "Jednotková cena po zľave v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Vat_Lc": {
+					"description": "Jednotková cena po zľave s DPH v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Base_Lc": {
+					"description": "Jednotková cena pred zľavou v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Base_Vat_Lc": {
+					"description": "Jednotková cena pred zľavou s DPH v legislatívnej mene.",
+					"type": "number",
+					"format": "double"
+				},
+				"Real_Accounting_Balance": {
+					"description": "Skutočný účtovný zostatok",
+					"type": "number",
+					"format": "double"
+				},
+				"Id_Stocks": {
+					"description": "Id skladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Id_Stock_Items": {
+					"description": "Id skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Stock_Item_Weight": {
+					"description": "Jednotková hmotnosť položky (kg)",
+					"type": "number",
+					"format": "double"
+				},
+				"Pv_Accept": {
+					"description": "Príznak, či položka vstupuje do skladových pohybov.\r\n-1 - Vstupuje.\r\n0 - Nevstupuje.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoDocumentItem" },
+			"type": "object"
+		},
+		"DtoDocumentItem_post": {
+			"title": "DtoDocumentItem_post",
+			"description": "DTO trieda pre položku dokladu.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Externý identifikátor slúži na komunikáciu cez API. \r\nIdentifikátor bude vrátený v odpovedi na request, aby ste dokázali identifikovať ku ktorému záznamu patria odpovede poslané ako response.\r\nHodnota sa neukladá, ale mala by byť jedinečná.",
+					"type": "string"
+				},
+				"Stock_Items_Name": {
+					"description": "Názov skladovej karty, služby, voľnej položky.",
+					"type": "string"
+				},
+				"Stock_Name": {
+					"description": "Názov skladu.",
+					"type": "string"
+				},
+				"Plu": {
+					"description": "PLU.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Date_Manufacture": {
+					"description": "Dátum výroby.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Expiration": {
+					"description": "Záručná doba od dodávateľa .",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Serial_Number": {
+					"description": "Výrobné číslo / šarža.",
+					"type": "string"
+				},
+				"User_Amount": {
+					"description": "Množstvo.",
+					"type": "number",
+					"format": "double"
+				},
+				"Description": { "description": "Popis.", "type": "string" },
+				"Date_Expiration_For_Buyer": {
+					"description": "Záručná doba pre odberateľa.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Value_Name_1": {
+					"description": "Vlastnosť 1 - názov.",
+					"type": "string"
+				},
+				"Value_Name_2": {
+					"description": "Vlastnosť 2 - názov.",
+					"type": "string"
+				},
+				"Value_Name_3": {
+					"description": "Vlastnosť 3 - názov.",
+					"type": "string"
+				},
+				"Value_Name_4": {
+					"description": "Vlastnosť 4 - názov.",
+					"type": "string"
+				},
+				"Value_Name_5": {
+					"description": "Vlastnosť 5 - názov.",
+					"type": "string"
+				},
+				"Value_Name_6": {
+					"description": "Vlastnosť 6 - názov.",
+					"type": "string"
+				},
+				"Item_Type": {
+					"description": "Typ položky.\r\n0 - Nedefinované\r\n1 - Skladová karta\r\n2 - Služba\r\n5 - Voľná položka\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 5, 6]
+				},
+				"Unit_Price_Rounding_Type": {
+					"description": "Typ zaokrúhlenia jednotkovej ceny po zľave.\r\n0 - Nedefinované\r\n1 - Prirodzene\r\n2 - Nahor\r\n3 - Nadol\r\n4 - Nezaokrúhľovať",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3, 4]
+				},
+				"Unit_Price_Rounding_Number": {
+					"description": "Zaokrúhlenie jednotkovej ceny po zľave.\r\n0 - Nedefinované,\r\n1 - 0.0001,\r\n2 - 0.001,\r\n3 - 0.01,\r\n4 - 0,1.\r\n5 - 0.5,\r\n6 - 1,\r\n7 - 5,\r\n8 - 10,\r\n9 - 50.\r\n10 - 100,\r\n11 - 500,\r\n12 - 1000,\r\n13 - 0.00001,\r\n14 - 0.000001.\r\n15 - 0.0000001.\r\n16 - 0.0000001.\r\n17 - 0.05.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [
+						0,
+						1,
+						2,
+						3,
+						17,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				},
+				"Sum_Rounding_Type": {
+					"description": "Zaokrúhlenie sumy spolu.\r\n0 - Nedefinované,\r\n1 - Prirodzene,\r\n2 - Nahor,\r\n3 - Nadol,\r\n4 - Nezaokrúhľovať.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3, 4]
+				},
+				"Sum_Rounding_Number": {
+					"description": "Typ zaokrúhlenia sumy spolu.\r\n0 - Nedefinované,\r\n1 - 0.0001,\r\n2 - 0.001,\r\n3 - 0.01,\r\n4 - 0,1.\r\n5 - 0.5,\r\n6 - 1,\r\n7 - 5,\r\n8 - 10,\r\n9 - 50.\r\n10 - 100,\r\n11 - 500,\r\n12 - 1000,\r\n13 - 0.00001,\r\n14 - 0.000001.\r\n15 - 0.0000001.\r\n16 - 0.0000001.\r\n17 - 0.05.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [
+						0,
+						1,
+						2,
+						3,
+						17,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16
+					]
+				},
+				"Measure_Unit": {
+					"description": "Merná jednotka.",
+					"type": "string"
+				},
+				"Date_Reservation": {
+					"description": "Dátum rezervácie na sklade.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Reservated_Amount": {
+					"description": "Rezervované množstvo.",
+					"type": "number",
+					"format": "double"
+				},
+				"Stock_Item_Code": {
+					"description": "Kód skladovej karty.",
+					"type": "string"
+				},
+				"Product_Code_Type": {
+					"description": "Typ produktového kódu.",
+					"type": "string"
+				},
+				"Account_Md_Syn": {
+					"description": "Strana MÁ DAŤ syntetika.",
+					"type": "string"
+				},
+				"Account_Md_Anl": {
+					"description": "Strana MÁ DAŤ analytika.",
+					"type": "string"
+				},
+				"Account_Dal_Syn": {
+					"description": "Strana DAL syntetika.",
+					"type": "string"
+				},
+				"Account_Dal_Anl": {
+					"description": "Strana DAL analytika.",
+					"type": "string"
+				},
+				"Ist_Code": {
+					"description": "Intrastat - kód kombinovanej nomenklatúry.",
+					"type": "string"
+				},
+				"Stock_Items_Ns_Number": {
+					"description": "Číslo skladovej karty, služby, voľnej položky.",
+					"type": "string"
+				},
+				"Stock_Code": {
+					"description": "Kód skladu.",
+					"type": "string"
+				},
+				"Stock_Ean": { "description": "EAN skladu.", "type": "string" },
+				"Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"Ia_GuidExt_1": {
+					"description": "Interné rozúčtovanie 1 - guid ext.",
+					"type": "string"
+				},
+				"Ia_GuidExt_2": {
+					"description": "Interné rozúčtovanie 2 - guid ext.",
+					"type": "string"
+				},
+				"Ia_GuidExt_3": {
+					"description": "Interné rozúčtovanie 3 - guid ext.",
+					"type": "string"
+				},
+				"Ia_GuidExt_4": {
+					"description": "Interné rozúčtovanie 4 - guid ext.",
+					"type": "string"
+				},
+				"Ia_GuidExt_5": {
+					"description": "Interné rozúčtovanie 5 - guid ext.",
+					"type": "string"
+				},
+				"Ia_GuidExt_6": {
+					"description": "Interné rozúčtovanie 6 - guid ext.",
+					"type": "string"
+				},
+				"Item_Name": {
+					"description": "Vlastný názov položky.",
+					"type": "string"
+				},
+				"Unit_Price_Base": {
+					"description": "Jednotková cena bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Base_Vat": {
+					"description": "Jednotková cena s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount_Percent": {
+					"description": "Zľava bez DPH v percentách.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount": {
+					"description": "Zľava bez DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Discount_Vat": {
+					"description": "Zľava s DPH v mene dokladu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price": {
+					"description": "Cena po zľave bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Unit_Price_Vat": {
+					"description": "Cena po zľave s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum": {
+					"description": "Spolu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Sum_Vat": {
+					"description": "Spolu s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Price_Manager": {
+					"description": "Manažérska jednotková cena.",
+					"type": "number",
+					"format": "double"
+				},
+				"Vat_Rate_SysCode": {
+					"description": "Sadzba DPH – môže obsahovať hodnoty:\r\nDo 31.12.2024: 20, 10, 0, N, P\r\nOd 1.1.2025: 23, 19, 5, 0, N, P",
+					"type": "string"
+				},
+				"Real_Accounting_Balance": {
+					"description": "Skutočný účtovný zostatok",
+					"type": "number",
+					"format": "double"
+				},
+				"Stock_Item_Weight": {
+					"description": "Jednotková hmotnosť položky (kg)",
+					"type": "number",
+					"format": "double"
+				},
+				"Supplier_Code": {
+					"description": "Číslo partnera - dodávateľa. Použije sa pre priradenie dodávateľského cenníka podľa partnera.",
+					"type": "string"
+				},
+				"Supplier_Stock_Item_Code": {
+					"description": "Kód karty u dodávateľa. Nastaví sa karte iba pri jej založení počas importu.",
+					"type": "string"
+				},
+				"Price_Catalog_Code": {
+					"description": "Kód dodávateľského cenníka. Nastaví sa karte iba pri jej založení počas importu.",
+					"type": "string"
+				},
+				"Supplier_Stock_Item_Name": {
+					"description": "Názov karty u dodávateľa. Nastaví sa karte iba pri jej založení počas importu.",
+					"type": "string"
+				},
+				"Supplier_Measure_Unit": {
+					"description": "Merná jednotka u dodávateľa. Nastaví sa karte iba pri jej založení počas importu.",
+					"type": "string"
+				},
+				"Stock_Items_Ns_Evid_Code": {
+					"description": "Kód evidencie.",
+					"type": "string"
+				},
+				"Stock_Items_Ns_Code": {
+					"description": "Kód číselného radu.",
+					"type": "string"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoDocumentItem" },
+			"type": "object"
+		},
+		"DtoDocumentEnclosure": {
+			"title": "DtoDocumentEnclosure",
+			"description": "DTO trieda pre obálku prílohy dokladu.",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu. Používa sa ako parameter pre načítanie prílohy, pre endpoint /api/v1/enclosures",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": { "description": "Názov prílohy", "type": "string" },
+				"Description": {
+					"description": "Popis prílohy",
+					"type": "string"
+				},
+				"Extension": {
+					"description": "Prípona súboru prílohy",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoDocumentEnclosure" },
+			"type": "object"
+		},
+		"CustomField": {
+			"title": "CustomField",
+			"description": "Zakáznícke (vlastné) DB pole",
+			"properties": {
+				"Name": { "description": "Názov", "type": "string" },
+				"Value": { "description": "Hodnota v DB", "type": "object" }
+			},
+			"xml": { "name": "CustomField" },
+			"type": "object"
+		},
+		"Result": {
+			"title": "Result",
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Pomocné id importovaného záznamu.",
+					"readOnly": true,
+					"type": "string"
+				},
+				"IdRecord": {
+					"description": "Id uloženého záznamu.",
+					"readOnly": true,
+					"type": "integer",
+					"format": "int64"
+				},
+				"Result": {
+					"description": "Výsledok pridania záznamu\r\n0 - Záznam bol pridaný\r\n1 - Záznam bol pridaný s warningami\r\n2 - Záznam bol pridaný s errormi\r\n3 - Záznam nebol pridaný",
+					"readOnly": true,
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3]
+				},
+				"Errors": {
+					"description": "Zoznam chýb, kvôli ktorým sa nepodarilo uložiť/vymazať.",
+					"items": { "$ref": "#/definitions/Message" },
+					"readOnly": true,
+					"xml": { "name": "Message", "wrapped": true },
+					"type": "array"
+				},
+				"Warnings": {
+					"description": "Zoznam upozornení.\r\nAk sa nepodarilo uložiť/vymazať, bude vždy prázdne.",
+					"items": { "$ref": "#/definitions/Message" },
+					"readOnly": true,
+					"xml": { "name": "Message", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "Result" },
+			"type": "object"
+		},
+		"Message": {
+			"title": "Message",
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Pomocné id importovaného záznamu.",
+					"readOnly": true,
+					"type": "string"
+				},
+				"Message": {
+					"description": "Text.",
+					"readOnly": true,
+					"type": "string"
+				}
+			},
+			"xml": { "name": "Message" },
+			"type": "object"
+		},
+		"DtoDocumentType": {
+			"title": "DtoDocumentType",
+			"description": "DTO trieda pre typ dokladu.",
+			"properties": {
+				"Id": {
+					"description": "Id typu dokladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": {
+					"description": "Názov typu dokladu",
+					"type": "string"
+				},
+				"BussinesCycleName": {
+					"description": "Názov obchodného cyklu pod ktorý doklad patrí",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoDocumentType" },
+			"type": "object"
+		},
+		"DtoDocumentState": {
+			"title": "DtoDocumentState",
+			"description": "DTO trieda pre stav dokladu.",
+			"properties": {
+				"IdRecord": {
+					"description": "IdRecord stavu dokladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": {
+					"description": "Názov stavu dokladu",
+					"type": "string"
+				},
+				"IsAutomaticState": {
+					"description": "Či je stav nastavený Onixom automticky",
+					"type": "boolean"
+				}
+			},
+			"xml": { "name": "DtoDocumentState" },
+			"type": "object"
+		},
+		"DocumentCurrentState": {
+			"title": "DocumentCurrentState",
+			"description": "DTO pre nastavenie stavu konkrétnemu dokladu.",
+			"properties": {
+				"DocumentIdRecord": {
+					"description": "IdRecord dokladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"DocumentStateIdRecord": {
+					"description": "IdRecord stavu dokladu",
+					"type": "integer",
+					"format": "int64"
+				}
+			},
+			"xml": { "name": "DocumentCurrentState" },
+			"type": "object"
+		},
+		"DocumentCustomColumns": {
+			"title": "DocumentCustomColumns",
+			"description": "DTO pre nastavenie zákazníckych (vlastných) DB polí konkrétnemu dokladu.",
+			"properties": {
+				"DocumentIdRecord": {
+					"description": "IdRecord dokladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"CustomColumns": {
+					"description": "Zakáznícke (vlastné) DB polia",
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DocumentCustomColumns" },
+			"type": "object"
+		},
+		"DtoEnclosureData_get": {
+			"title": "DtoEnclosureData_get",
+			"description": "DTO trieda pre dáta prílohy.",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Enclosure": {
+					"description": "Príloha",
+					"type": "string",
+					"format": "byte"
+				},
+				"EnclosureView": {
+					"description": "Príloha v malom formáte (ak je prílohou obrázok)",
+					"type": "string",
+					"format": "byte"
+				}
+			},
+			"xml": { "name": "DtoEnclosureData_get" },
+			"type": "object"
+		},
+		"DtoInternalAccounting_get": {
+			"title": "DtoInternalAccounting_get",
+			"description": "DTO trieda pre interné rozúčtovanie.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Variant": {
+					"description": "Variant interného rozúčtovania",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Id_Parent": {
+					"description": "IdRecord nadradenej hodnoty v strome",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Tree_Parents": {
+					"description": "Strom - Zoznam predchodcov",
+					"type": "string"
+				},
+				"Tree_Level": {
+					"description": "Strom - Úroveň",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Ordinal": {
+					"description": "Poradové číslo",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Name": { "description": "Názov", "type": "string" },
+				"Is_Breakdown": {
+					"description": "Interné rozúčtovanie je rozpis (-1 znamená, že ide o rozpis, 0 znamená, že nejde o rozpis)",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Code": {
+					"description": "Kód interného rozúčtovania",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu",
+					"type": "string"
+				},
+				"Ns_Evid_Code": {
+					"description": "Kód evidencie",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Číslo interného rozúčtovania",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Kľúč záznamu v externej DB. Ak je zadaný, tak slúži ako párovacie kritérium",
+					"type": "string"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoInternalAccounting" },
+			"type": "object"
+		},
+		"DtoInternalAccounting_post": {
+			"title": "DtoInternalAccounting_post",
+			"description": "DTO trieda pre interné rozúčtovanie.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Externý identifikátor slúži na komunikáciu cez API. \r\nIdentifikátor bude vrátený v odpovedi na request, aby ste dokázali identifikovať ku ktorému záznamu patria odpovede poslané ako response.\r\nHodnota sa neukladá, ale mala by byť jedinečná.",
+					"type": "string"
+				},
+				"Name": { "description": "Názov", "type": "string" },
+				"Code": {
+					"description": "Kód interného rozúčtovania",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Číslo interného rozúčtovania",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Kľúč záznamu v externej DB. Ak je zadaný, tak slúži ako párovacie kritérium",
+					"type": "string"
+				},
+				"Guid_Ext_Parent": {
+					"description": "Klúč nadradeného záznamu v externej DB",
+					"type": "string"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoInternalAccounting" },
+			"type": "object"
+		},
+		"PagedResult_DtoPartners_get": {
+			"title": "PagedResult_DtoPartners_get",
+			"description": "Obal pre stránkovaný response. Vracia sa len vtedy, keď sú v requeste prítomné\r\nparametre stránkovania (pageSize, cursor a v prípade StockItems aj itemType). Bez parametrov stránkovania sa vracia pôvodný array.",
+			"properties": {
+				"Data": {
+					"description": "Zoznam záznamov aktuálnej stránky.",
+					"items": { "$ref": "#/definitions/DtoPartners_get" },
+					"xml": { "name": "DtoPartners", "wrapped": true },
+					"type": "array"
+				},
+				"NextCursor": {
+					"description": "Hodnota kurzora pre načítanie ďalšej stránky. Použiť ako hodnotu parametra cursor\r\nv nasledujúcom requeste. Ak je null, neexistujú ďalšie záznamy.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"HasNext": {
+					"description": "Indikuje, či existujú ďalšie záznamy za aktuálnou stránkou.\r\nAk je false, toto je posledná stránka.",
+					"type": "boolean"
+				},
+				"PageSize": {
+					"description": "Veľkosť stránky použitá pri tomto requeste.",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "PagedResult`1" },
+			"type": "object"
+		},
+		"DtoPartners_get": {
+			"title": "DtoPartners_get",
+			"description": "DTO trieda pre partnera.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Addresses": {
+					"description": "Zoznam adries partnera.",
+					"items": { "$ref": "#/definitions/DtoPartnerAddress" },
+					"readOnly": true,
+					"xml": { "name": "I_PARTNERS_ADDRESSES", "wrapped": true },
+					"type": "array"
+				},
+				"BankAccounts": {
+					"description": "Zoznam bankových účtov partnera.",
+					"items": { "$ref": "#/definitions/DtoPartnerBankAccount" },
+					"readOnly": true,
+					"xml": {
+						"name": "I_PARTNERS_BANKACCOUNTS",
+						"wrapped": true
+					},
+					"type": "array"
+				},
+				"Contacts": {
+					"description": "Zoznam kontaktov partnera.",
+					"items": { "$ref": "#/definitions/DtoPartnerContact" },
+					"readOnly": true,
+					"xml": { "name": "I_PARTNERS_CONTACTS", "wrapped": true },
+					"type": "array"
+				},
+				"Name": { "description": "Názov partnera.", "type": "string" },
+				"Description": { "description": "Poznámka.", "type": "string" },
+				"Ns_Number": {
+					"description": "Číslo partnera.",
+					"type": "string"
+				},
+				"Partner_Ean": {
+					"description": "EAN partnera.",
+					"type": "string"
+				},
+				"Reg": { "description": "IČO.", "type": "string" },
+				"Tax": { "description": "DIČ.", "type": "string" },
+				"Date_Changed": {
+					"description": "História - dátum zmeny partnera.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Maturity_Sendedinvoices": {
+					"description": "Splatnosť odoslaných dokladov.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Maturity_Receivedinvoices": {
+					"description": "Splatnosť prijatých dokladov.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Center": { "description": "Stredisko.", "type": "string" },
+				"Department": { "description": "Prevádzka.", "type": "string" },
+				"Transport_Type": {
+					"description": "Spôsob dopravy.",
+					"type": "string"
+				},
+				"Payment_Type": {
+					"description": "Forma úhrady.",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Klúč záznamu v externom SW.",
+					"type": "string"
+				},
+				"Credit_Settings": {
+					"description": "Nastavenie fakturačného kreditu.\r\n0 - Vypnuté,\r\n1 - Povoliť - iba upozornenie,\r\n2 - Zakázať - tvrdá validácia.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2]
+				},
+				"Credit_Value": {
+					"description": "Suma fakturačného kreditu.",
+					"type": "number",
+					"format": "double"
+				},
+				"Credit_Unpayer": {
+					"description": "Zakázať fakturáciu, ak je neplatič.\r\n-1 - Zakázať,\r\n0 - Povoliť.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Partner_Type": {
+					"description": "Typ partnera na doklade.\r\nObčan = -2\r\nPodnikateľ - fyzická osoba = 1\r\nPodnikateľ - právnická osoba = 2",
+					"type": "integer",
+					"format": "int32",
+					"enum": [-2, 1, 2, 0]
+				},
+				"Vat_No": { "description": "IČ DPH.", "type": "string" },
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoPartners" },
+			"type": "object"
+		},
+		"DtoPartners_post": {
+			"title": "DtoPartners_post",
+			"description": "DTO trieda pre partnera.",
+			"required": ["RecordExternalIdentificator"],
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Externý identifikátor slúži na komunikáciu cez API. \r\nIdentifikátor bude vrátený v odpovedi na request, aby ste dokázali identifikovať ku ktorému záznamu patria odpovede poslané ako response.\r\nHodnota sa neukladá, ale mala by byť jedinečná.",
+					"type": "string"
+				},
+				"Name": { "description": "Názov partnera.", "type": "string" },
+				"Description": { "description": "Poznámka.", "type": "string" },
+				"Ns_Number": {
+					"description": "Číslo partnera.",
+					"type": "string"
+				},
+				"Partner_Ean": {
+					"description": "EAN partnera.",
+					"type": "string"
+				},
+				"Reg": { "description": "IČO.", "type": "string" },
+				"Tax": { "description": "DIČ.", "type": "string" },
+				"Maturity_Sendedinvoices": {
+					"description": "Splatnosť odoslaných dokladov.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Maturity_Receivedinvoices": {
+					"description": "Splatnosť prijatých dokladov.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Center": { "description": "Stredisko.", "type": "string" },
+				"Department": { "description": "Prevádzka.", "type": "string" },
+				"Transport_Type": {
+					"description": "Spôsob dopravy.",
+					"type": "string"
+				},
+				"Payment_Type": {
+					"description": "Forma úhrady.",
+					"type": "string"
+				},
+				"Guid_Ext": {
+					"description": "Klúč záznamu v externom SW.",
+					"type": "string"
+				},
+				"Partner_Type": {
+					"description": "Typ partnera na doklade.\r\nObčan = -2\r\nPodnikateľ - fyzická osoba = 1\r\nPodnikateľ - právnická osoba = 2",
+					"type": "integer",
+					"format": "int32",
+					"enum": [-2, 1, 2, 0]
+				},
+				"Vat_No": { "description": "IČ DPH.", "type": "string" },
+				"Vat_Payer": {
+					"description": "Platiteľ DPH.\r\n1 - Zapnuté\r\n2 - Vypnuté",
+					"type": "integer",
+					"format": "int32"
+				},
+				"PostCode": {
+					"description": "Fakturačná adresa - PSČ.",
+					"type": "string"
+				},
+				"Street": {
+					"description": "Fakturačná adresa - Ulica.",
+					"type": "string"
+				},
+				"StreetNo": {
+					"description": "Fakturačná adresa - Ulica - číslo.",
+					"type": "string"
+				},
+				"City": {
+					"description": "Fakturačná adresa - Mesto.",
+					"type": "string"
+				},
+				"State": {
+					"description": "Fakturačná adresa - Štát.",
+					"type": "string"
+				},
+				"BillingPlaceEan": {
+					"description": "Fakturačná adresa - EAN fakturačného miesta.",
+					"type": "string"
+				},
+				"PaPostCode": {
+					"description": "Korešpondenčná adresa - PSČ.",
+					"type": "string"
+				},
+				"PaStreet": {
+					"description": "Korešpondenčná adresa - Ulica.",
+					"type": "string"
+				},
+				"PaStreetNo": {
+					"description": "Korešpondenčná adresa - Ulica - číslo.",
+					"type": "string"
+				},
+				"PaCity": {
+					"description": "Korešpondenčná adresa - Mesto.",
+					"type": "string"
+				},
+				"PaState": {
+					"description": "Korešpondenčná adresa - Štát.",
+					"type": "string"
+				},
+				"PaName": {
+					"description": "Korešpondenčná adresa - Názov.",
+					"type": "string"
+				},
+				"DaPostCode": {
+					"description": "Dodacia adresa - PSČ.",
+					"type": "string"
+				},
+				"DaStreet": {
+					"description": "Dodacia adresa - Ulica.",
+					"type": "string"
+				},
+				"DaStreetNo": {
+					"description": "Dodacia adresa - Ulica - číslo.",
+					"type": "string"
+				},
+				"DaCity": {
+					"description": "Dodacia adresa - Mesto.",
+					"type": "string"
+				},
+				"DaState": {
+					"description": "Dodacia adresa - Štát.",
+					"type": "string"
+				},
+				"DaName": {
+					"description": "Dodacia adresa - Názov.",
+					"type": "string"
+				},
+				"DaDeliveryPlaceEan": {
+					"description": "Dodacia adresa - EAN miesta dodania (pobočky).",
+					"type": "string"
+				},
+				"ContactFirstName": {
+					"description": "Kontakt - meno.",
+					"type": "string"
+				},
+				"ContactSurname": {
+					"description": "Kontakt - priezvisko.",
+					"type": "string"
+				},
+				"ContactTelephoneNumber": {
+					"description": "Kontakt - telefónne číslo.",
+					"type": "string"
+				},
+				"ContactEmail": {
+					"description": "Kontakt - Email.",
+					"type": "string"
+				},
+				"AccountName": {
+					"description": "Názov účtu.",
+					"type": "string"
+				},
+				"Iban": { "description": "IBAN.", "type": "string" },
+				"Swift": { "description": "SWIFT.", "type": "string" },
+				"AccountNumber": {
+					"description": "Číslo účtu.",
+					"type": "string"
+				},
+				"BankCode": { "description": "Kód banky.", "type": "string" },
+				"AccountCurr": {
+					"description": "Mena bankového účtu.",
+					"type": "string"
+				},
+				"VariableSymbol": {
+					"description": "Variabilný symbol.",
+					"type": "string"
+				},
+				"ConstantSymbol": {
+					"description": "Konštantný symbol.",
+					"type": "string"
+				},
+				"SpecificSymbol": {
+					"description": "Špecifický symbol.",
+					"type": "string"
+				},
+				"Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoPartners" },
+			"type": "object"
+		},
+		"DtoPartnerAddress": {
+			"title": "DtoPartnerAddress",
+			"description": "Adresa parnera",
+			"properties": {
+				"Address_Type": {
+					"description": "Typ adresy.\r\nSídlo firmy alebo trvalé bydlisko = 1\r\nPrechodné bydlisko = 2\r\nFakturačná adresa = 3\r\nDodacia adresa = 4\r\nKontaktná adresa = 5\r\nKorešpondenčná adresa = 6\r\nIba trvalé bydlisko = 7",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Name": { "description": "Názov.", "type": "string" },
+				"Street": { "description": "Ulica.", "type": "string" },
+				"Postcode": { "description": "PSČ.", "type": "string" },
+				"City": { "description": "Mesto.", "type": "string" },
+				"Is_Postcard_Address": {
+					"description": "Korešpondenčná adresa.\r\nÁno = -1\r\nNie = 0",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Is_Delivery_Address": {
+					"description": "Dodacia adresa.\r\nÁno = -1\r\nNie = 0",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Is_Default_For_Type": {
+					"description": "Predvolené pre daný typ.\r\nÁno = -1\r\nNie = 0",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Street_No": {
+					"description": "Číslo ulice.",
+					"type": "string"
+				},
+				"State": { "description": "Štát.", "type": "string" },
+				"Billing_Place_Ean": {
+					"description": "EAN fakturačného miesta.",
+					"type": "string"
+				},
+				"Delivery_Place_Ean": {
+					"description": "Dodacia adresa - EAN miesta dodania (pobočky).",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoPartnerAddress" },
+			"type": "object"
+		},
+		"DtoPartnerBankAccount": {
+			"title": "DtoPartnerBankAccount",
+			"description": "Bankový účet partnera",
+			"properties": {
+				"Account_No": { "description": "Číslo účtu", "type": "string" },
+				"Name": { "description": "Názov účtu", "type": "string" },
+				"Iban": { "description": "IBAN", "type": "string" },
+				"Variable_Symbol": {
+					"description": "Variabilný symbol",
+					"type": "string"
+				},
+				"Specific_Symbol": {
+					"description": "Špecifický symbol",
+					"type": "string"
+				},
+				"Is_Default": {
+					"description": "Predvolený účet.\r\nÁno = -1\r\nNie = 0",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Curr_Code": { "description": "Mena", "type": "string" },
+				"Const_Symbol": {
+					"description": "Konštantný symbol",
+					"type": "string"
+				},
+				"Swift": { "description": "SWIFT", "type": "string" },
+				"Bank_Code": { "description": "Kód banky", "type": "string" }
+			},
+			"xml": { "name": "DtoPartnerBankAccount" },
+			"type": "object"
+		},
+		"DtoPartnerContact": {
+			"title": "DtoPartnerContact",
+			"description": "Kontakt partnera",
+			"properties": {
+				"Forname": { "description": "Krstné meno", "type": "string" },
+				"Surname": { "description": "Priezvisko", "type": "string" },
+				"Is_Default": {
+					"description": "Predvolený kontakt.\r\nÁno = -1\r\nNie = 0",
+					"type": "integer",
+					"format": "int32"
+				},
+				"ContactsData": {
+					"description": "Zoznam emailov, telefónnych čísiel pre tento daný kontakt partnera.",
+					"items": { "$ref": "#/definitions/DtoPartnerContactData" },
+					"readOnly": true,
+					"xml": {
+						"name": "I_PARTNERS_CONTACTS_DATA",
+						"wrapped": true
+					},
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoPartnerContact" },
+			"type": "object"
+		},
+		"DtoPartnerContactData": {
+			"title": "DtoPartnerContactData",
+			"description": "Dáta pre kontakt partnera",
+			"properties": {
+				"Type": {
+					"description": "Typ kontaktu.\r\nTelefón = 1\r\nTelefón2 = 2\r\nEmail = 3\r\nHttp = 4\r\nICQ = 5\r\nSkype = 6\r\nOstatné = 7",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Data": { "description": "Kontakt", "type": "string" },
+				"Tel_Number": { "description": "Tel. číslo", "type": "string" }
+			},
+			"xml": { "name": "DtoPartnerContactData" },
+			"type": "object"
+		},
+		"DtoPricingLists": {
+			"title": "DtoPricingLists",
+			"description": "DTO trieda pre cenníky",
+			"properties": {
+				"StockItem_IdRecord": {
+					"description": "ID skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockItem_Ns_Number": {
+					"description": "Číslo skladovej karty",
+					"type": "string"
+				},
+				"StockItem_Type": {
+					"description": "Typ skladovej karty.\r\n1 - Skladová karta\r\n2 - Služba\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Partner_IdRecord": {
+					"description": "ID partnera",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Partner_Ns_Number": {
+					"description": "Číslo partnera",
+					"type": "string"
+				},
+				"Partner_Reg": {
+					"description": "IČO partnera",
+					"type": "string"
+				},
+				"Price": {
+					"description": "Cena bez DPH",
+					"type": "number",
+					"format": "double"
+				}
+			},
+			"xml": { "name": "DtoPricingLists" },
+			"type": "object"
+		},
+		"DtoPartnerSIGroupPricingLists": {
+			"title": "DtoPartnerSIGroupPricingLists",
+			"description": "DTO trieda pre individuálne ceny partnerov za skupinu kariet",
+			"properties": {
+				"StockItemGroup_IdRecord": {
+					"description": "ID skupiny skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockItemGroup_Ns_Number": {
+					"description": "Číslo skupiny skladovej karty",
+					"type": "string"
+				},
+				"StockItemGroup_TreeLevel": {
+					"description": "Určuje prioritu cenníka (čím vyššie číslo, tým vyššiu prioritu má cenník)",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Partner_IdRecord": {
+					"description": "Id partnera",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Partner_Ns_Number": {
+					"description": "Číslo partnera",
+					"type": "string"
+				},
+				"Partner_Reg": {
+					"description": "IČO partnera",
+					"type": "string"
+				},
+				"CalculationType": {
+					"description": "Spôsob výpočtu ceny\r\n1 - Fixná cena\r\n2 - Manažérska cena + marža\r\n3 - Skladová cena + marža\r\n4 - Cena z iného cenníka - zľava",
+					"type": "integer",
+					"format": "int32"
+				},
+				"CalculationType_PricingList_IdRecord": {
+					"description": "Id cenníka",
+					"type": "integer",
+					"format": "int64"
+				},
+				"CalculationType_PricingList_Code": {
+					"description": "Kód cenníka",
+					"type": "string"
+				},
+				"CalculationType_Percentage": {
+					"description": "Zľava alebo marža (%)",
+					"type": "number",
+					"format": "double"
+				}
+			},
+			"xml": { "name": "DtoPartnerSIGroupPricingLists" },
+			"type": "object"
+		},
+		"DtoCatalogPricingLists": {
+			"title": "DtoCatalogPricingLists",
+			"description": "DTO trieda pre katalogové cenníky",
+			"properties": {
+				"StockItem_IdRecord": {
+					"description": "ID skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockItem_Ns_Number": {
+					"description": "Číslo skladovej karty",
+					"type": "string"
+				},
+				"StockItem_Type": {
+					"description": "Typ skladovej karty.\r\n1 - Skladová karta\r\n2 - Služba\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Stock_IdRecord": {
+					"description": "ID skladu\r\nMá význam pre cenu so spôsobom výpočtu: 3 - Skladová cena + marža.\r\nPre ceny s iným spôsobom výpočtu nie je k dispozícii.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Stock_Code": {
+					"description": "Kód skladu\r\nMá význam pre cenu so spôsobom výpočtu: 3 - Skladová cena + marža.\r\nPre ceny s iným spôsobom výpočtu nie je k dispozícii.",
+					"type": "string"
+				},
+				"Price": {
+					"description": "Cena bez DPH",
+					"type": "number",
+					"format": "double"
+				},
+				"Price_Vat": {
+					"description": "Cena s DPH",
+					"type": "number",
+					"format": "double"
+				},
+				"CalculationType": {
+					"description": "Spôsob výpočtu ceny\r\n1 - Fixná cena\r\n2 - Manažérska cena + marža\r\n3 - Skladová cena + marža\r\n4 - Cena z iného cenníka - zľava",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Timestamp": {
+					"description": "Časová pečiatka\r\nMá význam pre cenu so spôsobom výpočtu: 3 - Skladová cena + marža.\r\nPre ceny s iným spôsobom výpočtu nie je k dispozícii.",
+					"type": "string",
+					"format": "date-time"
+				}
+			},
+			"xml": { "name": "DtoCatalogPricingLists" },
+			"type": "object"
+		},
+		"DtoBatchProperties": {
+			"title": "DtoBatchProperties",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": { "description": "Názov vlastnosti.", "type": "string" }
+			},
+			"xml": { "name": "DtoBatchProperties" },
+			"type": "object"
+		},
+		"DtoBatchPropertyValues": {
+			"title": "DtoBatchPropertyValues",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": {
+					"description": "Názov hodnoty konkrétnej vlastnosti.",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoBatchPropertyValues" },
+			"type": "object"
+		},
+		"DtoGroups": {
+			"title": "DtoGroups",
+			"description": "DTO trieda pre skupiny skladových kariet, služieb, zariadení",
+			"properties": {
+				"IdRecord": {
+					"description": "Id skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Ns_Number": {
+					"description": "Číslo skupiny",
+					"type": "string"
+				},
+				"Ns_Code": { "description": "Kód skupiny", "type": "string" },
+				"Name": { "description": "Názov skupiny", "type": "string" },
+				"Id_Parent": {
+					"description": "Id predka skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Info": { "description": "Popis skupiny", "type": "string" },
+				"Date_Changed": {
+					"description": "História - dátum zmeny skupiny",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Enclosures": {
+					"items": { "$ref": "#/definitions/DtoGroupEnclosure" },
+					"xml": { "name": "DtoGroupEnclosure", "wrapped": true },
+					"type": "array"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoGroups" },
+			"type": "object"
+		},
+		"DtoGroupEnclosure": {
+			"title": "DtoGroupEnclosure",
+			"description": "DTO trieda pre obálku prílohy skupiny skladovej karty.",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu. Používa sa ako parameter pre načítanie prílohy, pre endpoint /api/v1/enclosures",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": { "description": "Názov prílohy", "type": "string" },
+				"Description": {
+					"description": "Popis prílohy",
+					"type": "string"
+				},
+				"Extension": {
+					"description": "Prípona súboru prílohy",
+					"type": "string"
+				},
+				"Is_Default": {
+					"description": "Či sa jedná o hlavný obrázok hlavného záznamu",
+					"type": "integer",
+					"format": "int32"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoGroupEnclosure" },
+			"type": "object"
+		},
+		"PagedResult_DtoStockItems_get": {
+			"title": "PagedResult_DtoStockItems_get",
+			"description": "Obal pre stránkovaný response. Vracia sa len vtedy, keď sú v requeste prítomné\r\nparametre stránkovania (pageSize, cursor a v prípade StockItems aj itemType). Bez parametrov stránkovania sa vracia pôvodný array.",
+			"properties": {
+				"Data": {
+					"description": "Zoznam záznamov aktuálnej stránky.",
+					"items": { "$ref": "#/definitions/DtoStockItems_get" },
+					"xml": { "name": "DtoStockItems", "wrapped": true },
+					"type": "array"
+				},
+				"NextCursor": {
+					"description": "Hodnota kurzora pre načítanie ďalšej stránky. Použiť ako hodnotu parametra cursor\r\nv nasledujúcom requeste. Ak je null, neexistujú ďalšie záznamy.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"HasNext": {
+					"description": "Indikuje, či existujú ďalšie záznamy za aktuálnou stránkou.\r\nAk je false, toto je posledná stránka.",
+					"type": "boolean"
+				},
+				"PageSize": {
+					"description": "Veľkosť stránky použitá pri tomto requeste.",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "PagedResult`1" },
+			"type": "object"
+		},
+		"DtoStockItems_get": {
+			"title": "DtoStockItems_get",
+			"description": "DTO trieda pre skladovú kartu.",
+			"required": ["RecordExternalIdentificator", "Ns_Number", "Type"],
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": {
+					"description": "Názov skladovej karty.",
+					"type": "string"
+				},
+				"Managerial_Price_Type": {
+					"description": "Pre POST platí, že sa posiela hodnota enum:\r\nTyp manažérskeho ocenenia\r\n1 - Manažérska cena = legislatívna,\r\n7 - Fixná cena.\r\n      \r\nPre GET platí, že vracia hodnoty:\r\n0 - Nezadaná,\r\n1 - Manažérska cena = legislatívna,\r\n7 - Fixná cena.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Managerial_Price": {
+					"description": "Fixná cena.",
+					"type": "number",
+					"format": "double"
+				},
+				"Info": { "description": "Popis.", "type": "string" },
+				"Account_Stock_Syn": {
+					"description": "Účet karty - syntetika.",
+					"type": "string"
+				},
+				"Account_Stock_Anl": {
+					"description": "Účet karty - analytika.",
+					"type": "string"
+				},
+				"Account_Issue_Syn": {
+					"description": "Nákladový účet - syntetika.",
+					"type": "string"
+				},
+				"Account_Issue_Anl": {
+					"description": "Nákladový účet - analytika.",
+					"type": "string"
+				},
+				"Account_Recive_Syn": {
+					"description": "Účet obstarania - syntetika.",
+					"type": "string"
+				},
+				"Account_Recive_Anl": {
+					"description": "Účet obstarania - analytika.",
+					"type": "string"
+				},
+				"Account_Profit_Syn": {
+					"description": "Účet fakturácie - syntetika.",
+					"type": "string"
+				},
+				"Account_Profit_Anl": {
+					"description": "Účet fakturácie - analytika.",
+					"type": "string"
+				},
+				"Default_Price": {
+					"description": "Predajná cena bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Default_Price_Vat": {
+					"description": "Predajná cena s DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Code": {
+					"description": "Intrastat - Kód kombinovanej nomenklatúry.",
+					"type": "string"
+				},
+				"Ist_Dmj": {
+					"description": "Intrastat - Koeficient prepočtu na DMJ.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Weight": {
+					"description": "Intrastat - Čistá hmotnosť hlavnej MJ (kg).",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Country_Name": {
+					"description": "Intrastat - Krajina pôvodu.",
+					"type": "string"
+				},
+				"Ist_Description": {
+					"description": "Intrastat - Opis tovaru.",
+					"type": "string"
+				},
+				"Supplier_Codes": {
+					"description": "Kódy dodávateľov skladovej karty.",
+					"type": "string"
+				},
+				"Recycle_Rate_Per_Kg": {
+					"description": "Recyklačný poplatok - Sadzba EUR/kg.",
+					"type": "number",
+					"format": "double"
+				},
+				"Recycle_Tax": {
+					"description": "Recyklačný poplatok.",
+					"type": "number",
+					"format": "double"
+				},
+				"Weight": {
+					"description": "Hmotnosť hlavnej MJ v kg.",
+					"type": "number",
+					"format": "double"
+				},
+				"Measure_Units_Default_Name": {
+					"description": "Názov hlavnej mernej jednotky.",
+					"type": "string"
+				},
+				"Product_Code": {
+					"description": "Hlavný kód produktu.",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu.",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Čislo karty. Slúži ako párovacie kritérium skladovej karty.",
+					"type": "string"
+				},
+				"Plu": {
+					"description": "Plu.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Use_Serial_Number": {
+					"description": "Karta s výrobnými číslami.",
+					"type": "boolean"
+				},
+				"Monitor_Expiration": {
+					"description": "Karta s dátumami expirácie.",
+					"type": "boolean"
+				},
+				"StockItemBalance": {
+					"description": "Skladový zostatok karty.",
+					"items": { "$ref": "#/definitions/DtoStockItemBalance" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemBalance", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemGroups": {
+					"description": "Skupiny skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemGroup" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemGroup", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemParams": {
+					"description": "Parametre skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemParam" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemParam", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemCodes": {
+					"description": "Kódy skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemCode" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemCode", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemAccessories": {
+					"description": "Príslušenstvo skladovej karty",
+					"items": {
+						"$ref": "#/definitions/DtoStockItemAndServiceAccessory"
+					},
+					"readOnly": true,
+					"xml": {
+						"name": "IStockItemAndServiceAccessory",
+						"wrapped": true
+					},
+					"type": "array"
+				},
+				"Enclosures": {
+					"items": { "$ref": "#/definitions/DtoStockItemEnclosure" },
+					"xml": { "name": "DtoStockItemEnclosure", "wrapped": true },
+					"type": "array"
+				},
+				"VatRate": {
+					"description": "Pre POST platí, že sa posiela hodnota enum:\r\nSadzba DPH\r\n1 - Základná\r\n2 - Znížená\r\n3 - Nulová\r\n4 - Neobsahuje\r\n5 - Znížená 2\r\n<br />       \r\nPre GET platí, že vracia reťazec:\r\nDo 31.12.2024:\r\n\"20\" - Základná\r\n\"10\" - Znížená\r\n\"0\"  - Nulová\r\n\"Neobsahuje\" - Neobsahuje\r\n<br />\r\nOd 1.1.2025:\r\n\"23\" - Základná\r\n\"19\" - Znížená\r\n\"5\" - Znížená 2\r\n\"0\"  - Nulová\r\n\"Neobsahuje\" - Neobsahuje",
+					"type": "string"
+				},
+				"Common_Mu_Amount": {
+					"description": "Obvykle vydávané množstvo",
+					"type": "number",
+					"format": "double"
+				},
+				"Date_Add": {
+					"description": "Dátum zaevidovania",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Date_Changed": {
+					"description": "História - dátum zmeny skladovej karty.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Id_Stock_Items_Group_Default": {
+					"description": "Id hlavnej skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Common_Mu_Name": {
+					"description": "Obvykle vydávané množstvo - MJ",
+					"type": "string"
+				},
+				"Type": {
+					"description": "Typ skladovej karty.\r\n1 - Skladová karta\r\n2 - Služba\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32",
+					"enum": ["1", "2", "6"]
+				},
+				"StockItemAlternatives": {
+					"description": "Alternatívy skladovej karty",
+					"items": {
+						"$ref": "#/definitions/DtoStockItemAndServiceAlternative"
+					},
+					"readOnly": true,
+					"xml": {
+						"name": "IStockItemAndServiceAlternative",
+						"wrapped": true
+					},
+					"type": "array"
+				},
+				"Product_Code_Type": {
+					"description": "Typ produktového kódu",
+					"type": "string"
+				},
+				"Partner_Ns_Number": {
+					"description": "Partner pre zariadenie – číslo partnera",
+					"type": "string"
+				},
+				"Partner_IdRecord": {
+					"description": "Partner pre zariadenie – Id partnera",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Partner_Name": {
+					"description": "Partner pre zariadenie – názov partnera",
+					"type": "string"
+				},
+				"Location_Device": {
+					"description": "Umiestnenie zariadenia",
+					"type": "string"
+				},
+				"Serial_Number_Device": {
+					"description": "Výrobné číslo zariadenia",
+					"type": "string"
+				},
+				"StockItemPartners": {
+					"description": "Zoznam dodávateľov skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemPartner" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemPartner", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemMeasureUnits": {
+					"description": "Zoznam merných jednotiek skladovej karty",
+					"items": {
+						"$ref": "#/definitions/DtoStockItemMeasureUnit"
+					},
+					"readOnly": true,
+					"xml": { "name": "IStockItemMeasureUnit", "wrapped": true },
+					"type": "array"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoStockItems" },
+			"type": "object"
+		},
+		"DtoStockItems_post": {
+			"title": "DtoStockItems_post",
+			"description": "DTO trieda pre skladovú kartu.",
+			"required": ["RecordExternalIdentificator", "Ns_Number", "Type"],
+			"properties": {
+				"RecordExternalIdentificator": {
+					"description": "Externý identifikátor slúži na komunikáciu cez API. \r\nIdentifikátor bude vrátený v odpovedi na request, aby ste dokázali identifikovať \r\nku ktorému záznamu patria odpovede poslané ako response.\r\nHodnota sa neukladá, ale mala by byť jedinečná.",
+					"type": "string"
+				},
+				"Name": {
+					"description": "Názov skladovej karty.",
+					"type": "string"
+				},
+				"Managerial_Price_Type": {
+					"description": "Pre POST platí, že sa posiela hodnota enum:\r\nTyp manažérskeho ocenenia\r\n1 - Manažérska cena = legislatívna,\r\n7 - Fixná cena.\r\n      \r\nPre GET platí, že vracia hodnoty:\r\n0 - Nezadaná,\r\n1 - Manažérska cena = legislatívna,\r\n7 - Fixná cena.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Managerial_Price": {
+					"description": "Fixná cena.",
+					"type": "number",
+					"format": "double"
+				},
+				"Info": { "description": "Popis.", "type": "string" },
+				"Account_Stock_Syn": {
+					"description": "Účet karty - syntetika.",
+					"type": "string"
+				},
+				"Account_Stock_Anl": {
+					"description": "Účet karty - analytika.",
+					"type": "string"
+				},
+				"Account_Issue_Syn": {
+					"description": "Nákladový účet - syntetika.",
+					"type": "string"
+				},
+				"Account_Issue_Anl": {
+					"description": "Nákladový účet - analytika.",
+					"type": "string"
+				},
+				"Account_Recive_Syn": {
+					"description": "Účet obstarania - syntetika.",
+					"type": "string"
+				},
+				"Account_Recive_Anl": {
+					"description": "Účet obstarania - analytika.",
+					"type": "string"
+				},
+				"Account_Profit_Syn": {
+					"description": "Účet fakturácie - syntetika.",
+					"type": "string"
+				},
+				"Account_Profit_Anl": {
+					"description": "Účet fakturácie - analytika.",
+					"type": "string"
+				},
+				"Ia_Name_1": {
+					"description": "Interné rozúčtovanie 1 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_2": {
+					"description": "Interné rozúčtovanie 2 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_3": {
+					"description": "Interné rozúčtovanie 3 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_4": {
+					"description": "Interné rozúčtovanie 4 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_5": {
+					"description": "Interné rozúčtovanie 5 - názov.",
+					"type": "string"
+				},
+				"Ia_Name_6": {
+					"description": "Interné rozúčtovanie 6 - názov.",
+					"type": "string"
+				},
+				"Ia_Code_1": {
+					"description": "Interné rozúčtovanie 1 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_2": {
+					"description": "Interné rozúčtovanie 2 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_3": {
+					"description": "Interné rozúčtovanie 3 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_4": {
+					"description": "Interné rozúčtovanie 4 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_5": {
+					"description": "Interné rozúčtovanie 5 - kód.",
+					"type": "string"
+				},
+				"Ia_Code_6": {
+					"description": "Interné rozúčtovanie 6 - kód.",
+					"type": "string"
+				},
+				"Default_Price": {
+					"description": "Predajná cena bez DPH.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Code": {
+					"description": "Intrastat - Kód kombinovanej nomenklatúry.",
+					"type": "string"
+				},
+				"Ist_Dmj": {
+					"description": "Intrastat - Koeficient prepočtu na DMJ.",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Weight": {
+					"description": "Intrastat - Čistá hmotnosť hlavnej MJ (kg).",
+					"type": "number",
+					"format": "double"
+				},
+				"Ist_Description": {
+					"description": "Intrastat - Opis tovaru.",
+					"type": "string"
+				},
+				"Recycle_Rate_Per_Kg": {
+					"description": "Recyklačný poplatok - Sadzba EUR/kg.",
+					"type": "number",
+					"format": "double"
+				},
+				"Recycle_Tax": {
+					"description": "Recyklačný poplatok.",
+					"type": "number",
+					"format": "double"
+				},
+				"Weight": {
+					"description": "Hmotnosť hlavnej MJ v kg.",
+					"type": "number",
+					"format": "double"
+				},
+				"Measure_Units_Default_Name": {
+					"description": "Názov hlavnej mernej jednotky.",
+					"type": "string"
+				},
+				"Product_Code": {
+					"description": "Hlavný kód produktu.",
+					"type": "string"
+				},
+				"Ns_Code": {
+					"description": "Kód číselného radu.",
+					"type": "string"
+				},
+				"Ns_Number": {
+					"description": "Čislo karty. Slúži ako párovacie kritérium skladovej karty.",
+					"type": "string"
+				},
+				"Plu": {
+					"description": "Plu.",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockItemBalance": {
+					"description": "Skladový zostatok karty.",
+					"items": { "$ref": "#/definitions/DtoStockItemBalance" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemBalance", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemGroups": {
+					"description": "Skupiny skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemGroup" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemGroup", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemParams": {
+					"description": "Parametre skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemParam" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemParam", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemCodes": {
+					"description": "Kódy skladovej karty",
+					"items": { "$ref": "#/definitions/DtoStockItemCode" },
+					"readOnly": true,
+					"xml": { "name": "IStockItemCode", "wrapped": true },
+					"type": "array"
+				},
+				"StockItemAccessories": {
+					"description": "Príslušenstvo skladovej karty",
+					"items": {
+						"$ref": "#/definitions/DtoStockItemAndServiceAccessory"
+					},
+					"readOnly": true,
+					"xml": {
+						"name": "IStockItemAndServiceAccessory",
+						"wrapped": true
+					},
+					"type": "array"
+				},
+				"VatRate": {
+					"description": "Pre POST platí, že sa posiela hodnota enum:\r\nSadzba DPH\r\n1 - Základná\r\n2 - Znížená\r\n3 - Nulová\r\n4 - Neobsahuje\r\n5 - Znížená 2\r\n<br />       \r\nPre GET platí, že vracia reťazec:\r\nDo 31.12.2024:\r\n\"20\" - Základná\r\n\"10\" - Znížená\r\n\"0\"  - Nulová\r\n\"Neobsahuje\" - Neobsahuje\r\n<br />\r\nOd 1.1.2025:\r\n\"23\" - Základná\r\n\"19\" - Znížená\r\n\"5\" - Znížená 2\r\n\"0\"  - Nulová\r\n\"Neobsahuje\" - Neobsahuje",
+					"type": "string"
+				},
+				"Id_Stock_Items_Group_Default": {
+					"description": "Id hlavnej skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Type": {
+					"description": "Typ skladovej karty.\r\n1 - Skladová karta\r\n2 - Služba\r\n6 - Zariadenie",
+					"type": "integer",
+					"format": "int32",
+					"enum": ["1", "2", "6"]
+				},
+				"StockItemAlternatives": {
+					"description": "Alternatívy skladovej karty",
+					"items": {
+						"$ref": "#/definitions/DtoStockItemAndServiceAlternative"
+					},
+					"readOnly": true,
+					"xml": {
+						"name": "IStockItemAndServiceAlternative",
+						"wrapped": true
+					},
+					"type": "array"
+				},
+				"Product_Code_Type": {
+					"description": "Typ produktového kódu",
+					"type": "string"
+				},
+				"Alcohol_Excise_Tax": {
+					"description": "Sadzba spotrebnej dane",
+					"type": "number",
+					"format": "double"
+				},
+				"Alcohol_Volume": {
+					"description": "Objem HMJ",
+					"type": "number",
+					"format": "double"
+				},
+				"Alcohol_Percent": {
+					"description": "Obsah alkoholu",
+					"type": "number",
+					"format": "double"
+				},
+				"Transfer_Of_Tax_Liability": {
+					"description": "Prenos daňovej povinnosti\r\n1 - Zapnutý\r\n2 - Vypnutý",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Description": { "description": "Poznámka", "type": "string" },
+				"Default_Stock": {
+					"description": "Hlavný sklad (zadáva sa kód skladu z číselníka skladov)",
+					"type": "string"
+				},
+				"Ist_Country_Code": {
+					"description": "Intrastat – krajina pôvodu (skratka podľa predpisu štatistického úradu)",
+					"type": "string"
+				},
+				"Partner_Ns_Number": {
+					"description": "Partner pre zariadenie – číslo partnera",
+					"type": "string"
+				},
+				"Location_Device": {
+					"description": "Umiestnenie zariadenia",
+					"type": "string"
+				},
+				"Serial_Number_Device": {
+					"description": "Výrobné číslo zariadenia",
+					"type": "string"
+				},
+				"UseSerialNumber": {
+					"description": "Používanie výrobných čísel na karte\r\n1 - Zapnuté\r\n2 - Vypnuté",
+					"type": "integer",
+					"format": "int32"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoStockItems" },
+			"type": "object"
+		},
+		"DtoStockItemBalance": {
+			"title": "DtoStockItemBalance",
+			"description": "Zostatok skladovej karty",
+			"properties": {
+				"StockId": {
+					"description": "ID skladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockCode": { "description": "Kód skladu", "type": "string" },
+				"StockName": {
+					"description": "Názov skladu",
+					"type": "string"
+				},
+				"Balance": {
+					"description": "Zostatok skladovej karty",
+					"type": "number",
+					"format": "double"
+				},
+				"Reservated": {
+					"description": "Rezervované množstvo skladovej karty",
+					"type": "number",
+					"format": "double"
+				},
+				"Available": {
+					"description": "Dostupné množstvo",
+					"type": "number",
+					"format": "double"
+				},
+				"StockPrice": {
+					"description": "Skladová cena",
+					"type": "number",
+					"format": "double"
+				}
+			},
+			"xml": { "name": "DtoStockItemBalance" },
+			"type": "object"
+		},
+		"DtoStockItemGroup": {
+			"title": "DtoStockItemGroup",
+			"description": "Skupina skladovej karty",
+			"properties": {
+				"StockItems_IdRecord": {
+					"description": "Id skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Ns_Number": {
+					"description": "Číslo skupiny",
+					"type": "string"
+				},
+				"Ns_Code": { "description": "Kód skupiny", "type": "string" },
+				"Name": { "description": "Názov skupiny", "type": "string" },
+				"IdParent": {
+					"description": "Id predka skupiny",
+					"type": "integer",
+					"format": "int64"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoStockItemGroup" },
+			"type": "object"
+		},
+		"DtoStockItemParam": {
+			"title": "DtoStockItemParam",
+			"description": "Parameter skladovej karty",
+			"properties": {
+				"Name": { "description": "Názov parametra", "type": "string" },
+				"Value": {
+					"description": "Hodnota parametra",
+					"type": "string"
+				},
+				"MeasureUnit": {
+					"description": "Merná jednotka",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoStockItemParam" },
+			"type": "object"
+		},
+		"DtoStockItemCode": {
+			"title": "DtoStockItemCode",
+			"description": "Kód skladovej karty",
+			"properties": {
+				"Is_Default": {
+					"description": "Indikuje, či daný kód je hlavný kód karty.\r\n-1 - Je hlavným kódom karty.\r\n0 - Nie je hlavným kódom karty.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Type_Name": {
+					"description": "Typ kódu (EAN, ITF14, ...)",
+					"type": "string"
+				},
+				"Code": {
+					"description": "Kód skladovej karty",
+					"type": "string"
+				},
+				"MuCode": {
+					"description": "Kód mernej jednotky",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoStockItemCode" },
+			"type": "object"
+		},
+		"DtoStockItemAndServiceAccessory": {
+			"title": "DtoStockItemAndServiceAccessory",
+			"description": "Príslušenstvo skladovej karty",
+			"properties": {
+				"StockItems_IdRecord": {
+					"description": "Id skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Order": {
+					"description": "Poradie",
+					"type": "integer",
+					"format": "int32"
+				},
+				"Name": { "description": "Názov karty", "type": "string" },
+				"Amount": {
+					"description": "Množstvo",
+					"type": "number",
+					"format": "double"
+				},
+				"MeasureUnit": {
+					"description": "Merná jednodka",
+					"type": "string"
+				},
+				"StockItemsNsNumber": {
+					"description": "Kód karty",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoStockItemAndServiceAccessory" },
+			"type": "object"
+		},
+		"DtoStockItemEnclosure": {
+			"title": "DtoStockItemEnclosure",
+			"description": "DTO trieda pre obálku prílohy skladovej karty.",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu. Používa sa ako parameter pre načítanie prílohy, pre endpoint /api/v1/enclosures",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": { "description": "Názov prílohy", "type": "string" },
+				"Description": {
+					"description": "Popis prílohy",
+					"type": "string"
+				},
+				"Extension": {
+					"description": "Prípona súboru prílohy",
+					"type": "string"
+				},
+				"Is_Default": {
+					"description": "Či sa jedná o hlavný obrázok hlavného záznamu",
+					"type": "integer",
+					"format": "int32"
+				},
+				"CustomColumns": {
+					"items": { "$ref": "#/definitions/CustomField" },
+					"xml": { "name": "CustomField", "wrapped": true },
+					"type": "array"
+				}
+			},
+			"xml": { "name": "DtoStockItemEnclosure" },
+			"type": "object"
+		},
+		"DtoStockItemAndServiceAlternative": {
+			"title": "DtoStockItemAndServiceAlternative",
+			"description": "Alternatíva skladovej karty",
+			"properties": {
+				"StockItems_IdRecord": {
+					"description": "Id karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Order": {
+					"description": "Poradie",
+					"type": "integer",
+					"format": "int32"
+				},
+				"StockItemsNsNumber": {
+					"description": "Kód karty",
+					"type": "string"
+				},
+				"Name": { "description": "Názov karty", "type": "string" },
+				"Amount": {
+					"description": "Množstvo",
+					"type": "number",
+					"format": "double"
+				},
+				"MeasureUnit": {
+					"description": "Merná jednotka",
+					"type": "string"
+				},
+				"FullExchange": {
+					"description": "Úplná náhrada",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "DtoStockItemAndServiceAlternative" },
+			"type": "object"
+		},
+		"DtoStockItemPartner": {
+			"title": "DtoStockItemPartner",
+			"properties": {
+				"PartnerStockItemCode": {
+					"description": "Kód karty u partnera",
+					"type": "string"
+				},
+				"PartnerType": {
+					"description": "Indikuje o aký typ partnera sa jedná.\r\n1 -&gt; Dodávateľ.\r\n2 -&gt; Konkurent.\r\n3 -&gt; Klient.",
+					"type": "integer",
+					"format": "int32"
+				},
+				"PartnerName": {
+					"description": "Názov partnera",
+					"type": "string"
+				},
+				"PartnerStockItemName": {
+					"description": "Názov karty u partnera",
+					"type": "string"
+				},
+				"PartnerMeasureUnit": {
+					"description": "Merná jednotka",
+					"type": "string"
+				}
+			},
+			"xml": { "name": "DtoStockItemPartner" },
+			"type": "object"
+		},
+		"DtoStockItemMeasureUnit": {
+			"title": "DtoStockItemMeasureUnit",
+			"description": "Parameter skladovej karty",
+			"properties": {
+				"Name": { "description": "Názov MJ", "type": "string" },
+				"Code": { "description": "Kód MJ", "type": "string" },
+				"Coefficient": {
+					"description": "Koeficient prepočtu MJ voči hlavnej MJ",
+					"type": "number",
+					"format": "double"
+				},
+				"Is_Default": {
+					"description": "Indikuje, či daná MJ je hlavnou MJ karty.\r\n-1 - Je hlavnou mj karty.\r\n0 - Nie je hlavnou mj karty.",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "DtoStockItemMeasureUnit" },
+			"type": "object"
+		},
+		"DtoStockItemPropBalance": {
+			"title": "DtoStockItemPropBalance",
+			"description": "Zostatok skladovej karty, kombinacia karta - sklad - vlastnosť dávky",
+			"properties": {
+				"StockId": {
+					"description": "ID skladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockName": {
+					"description": "Názov skladu",
+					"type": "string"
+				},
+				"StockItemId": {
+					"description": "ID skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyText": {
+					"description": "Hodnota vlastnosti dávky",
+					"type": "string"
+				},
+				"PropertyId": {
+					"description": "ID vlastnosti dávky",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Balance": {
+					"description": "Zostatok",
+					"type": "number",
+					"format": "double"
+				}
+			},
+			"xml": { "name": "DtoStockItemPropBalance" },
+			"type": "object"
+		},
+		"DtoBalance": {
+			"title": "DtoBalance",
+			"description": "DTO trieda pre zostatky na sklade.",
+			"properties": {
+				"StockId": {
+					"description": "ID skladu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"StockName": {
+					"description": "Názov skladu",
+					"type": "string"
+				},
+				"StockItemId": {
+					"description": "ID skladovej karty",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyText1": {
+					"description": "Hodnota vlastnosti dávky 1",
+					"type": "string"
+				},
+				"PropertyText2": {
+					"description": "Hodnota vlastnosti dávky 2",
+					"type": "string"
+				},
+				"PropertyText3": {
+					"description": "Hodnota vlastnosti dávky 3",
+					"type": "string"
+				},
+				"PropertyText4": {
+					"description": "Hodnota vlastnosti dávky 4",
+					"type": "string"
+				},
+				"PropertyText5": {
+					"description": "Hodnota vlastnosti dávky 5",
+					"type": "string"
+				},
+				"PropertyText6": {
+					"description": "Hodnota vlastnosti dávky 6",
+					"type": "string"
+				},
+				"PropertyId1": {
+					"description": "ID vlastnosti dávky 1",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyId2": {
+					"description": "ID vlastnosti dávky 2",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyId3": {
+					"description": "ID vlastnosti dávky 3",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyId4": {
+					"description": "ID vlastnosti dávky 4",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyId5": {
+					"description": "ID vlastnosti dávky 5",
+					"type": "integer",
+					"format": "int64"
+				},
+				"PropertyId6": {
+					"description": "ID vlastnosti dávky 6",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Balance": {
+					"description": "Zostatok",
+					"type": "number",
+					"format": "double"
+				},
+				"SerialNumber": {
+					"description": "Výrobné číslo",
+					"type": "string"
+				},
+				"DateManufacture": {
+					"description": "Dátum výroby",
+					"type": "string",
+					"format": "date-time"
+				},
+				"DateExpiration": {
+					"description": "Záručná doba od dodávateľa",
+					"type": "string",
+					"format": "date-time"
+				},
+				"DateExpirationForBuyer": {
+					"description": "Záručná doba pre odberateľa",
+					"type": "string",
+					"format": "date-time"
+				}
+			},
+			"xml": { "name": "DtoBalance" },
+			"type": "object"
+		},
+		"DtoStocks": {
+			"title": "DtoStocks",
+			"description": "DTO trieda pre sklad.",
+			"properties": {
+				"IdRecord": {
+					"description": "ID záznamu",
+					"type": "integer",
+					"format": "int64"
+				},
+				"Name": { "description": "Názov skladu.", "type": "string" },
+				"Code": { "description": "Kód skladu.", "type": "string" },
+				"Stock_Ean": { "description": "EAN skladu.", "type": "string" },
+				"Date_Changed": {
+					"description": "História - dátum zmeny skladu.",
+					"type": "string",
+					"format": "date-time"
+				},
+				"Stock_Type": {
+					"description": "Typ skladu. \r\n0 - Nedefinovaný, \r\n1 - Tovarový, \r\n2 - Materiálový, \r\n3 - Dopravný, \r\n4 - Colný, \r\n5 - Konsignačný, \r\n6 - Skupina skladov.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2, 3, 4, 5, 6]
+				},
+				"Valuation_Type": {
+					"description": "Spôsob (legislatívneho) oceňovania skladových zásob.\r\n0 - Nedefinovaný, \r\n1 - Vážený aritmetický priemer, \r\n2 - FIFO.",
+					"type": "integer",
+					"format": "int32",
+					"enum": [0, 1, 2]
+				},
+				"Inactive": {
+					"description": "Aktívnosť skladu.\r\n-1 - Neaktívny,\r\n0 - Aktívny.",
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"xml": { "name": "DtoStocks" },
+			"type": "object"
+		}
+	},
+	"securityDefinitions": {
+		"Authorization": {
+			"type": "apiKey",
+			"description": "Standard Authorization header using the Bearer scheme. Example: \"bearer {token}\"",
+			"name": "Authorization",
+			"in": "header"
+		}
+	},
+	"tags": [
+		{
+			"name": "Documents",
+			"description": "Controller pre prácu s dokladmi"
+		},
+		{
+			"name": "Enclosures",
+			"description": "Controller pre prácu s prílohami"
+		},
+		{
+			"name": "InternalAccounting",
+			"description": "Controller pre prácu s interným rozúčtovaním"
+		},
+		{
+			"name": "Partners",
+			"description": "Controller pre prácu s partnermi"
+		},
+		{
+			"name": "PricingLists",
+			"description": "Controller pre prácu s cenníkmi"
+		},
+		{
+			"name": "StockItemBatchProperties",
+			"description": "Controller pre prácu s vlastnosťami dávok skladových kariet."
+		},
+		{
+			"name": "StockItemGroups",
+			"description": "Controller pre prácu so skupinami skladových kariet"
+		},
+		{
+			"name": "StockItems",
+			"description": "Controller pre prácu so skladovými kartami"
+		},
+		{ "name": "Stocks", "description": "Controller pre prácu so skladmi" }
+	]
+}
