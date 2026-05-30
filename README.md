@@ -5,8 +5,8 @@ A thin, typed HTTP client over the [Kros Onix](https://www.kros.sk/onix/) REST A
 pagination, business-result helpers, and request/error logging — so you can just
 _consume_ the API instead of building a client from scratch.
 
-Built on [`@marianmeres/http-utils`](https://jsr.io/@marianmeres/http-utils) 
-(transport - typed HTTP errors) and [`@marianmeres/clog`](https://jsr.io/@marianmeres/clog) 
+Built on [`@marianmeres/http-utils`](https://github.com/marianmeres/http-utils) 
+(transport - typed HTTP errors) and [`@marianmeres/clog`](https://github.com/marianmeres/clog) 
 (logging).
 
 ## Features
@@ -254,6 +254,9 @@ deno task check       # fmt --check + lint + type-check
 ```
 
 `src/types.gen.ts` is **generated** — never edit it by hand; run `deno task gen:types`.
+
+## See Also
+- Onix [web-api docs](https://onix.kros.sk/externe-prepojenie/web-api-dokumentacia/)
 
 ## License
 
