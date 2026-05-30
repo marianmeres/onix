@@ -5,9 +5,9 @@ A thin, typed HTTP client over the [Kros Onix](https://www.kros.sk/onix/) REST A
 pagination, business-result helpers, and request/error logging — so you can just
 _consume_ the API instead of building a client from scratch.
 
-Built on [`@marianmeres/http-utils`](https://jsr.io/@marianmeres/http-utils) (transport
-
-- typed HTTP errors) and [`@marianmeres/clog`](https://jsr.io/@marianmeres/clog) (logging).
+Built on [`@marianmeres/http-utils`](https://jsr.io/@marianmeres/http-utils) 
+(transport - typed HTTP errors) and [`@marianmeres/clog`](https://jsr.io/@marianmeres/clog) 
+(logging).
 
 ## Features
 
