@@ -256,7 +256,8 @@ deno task check       # fmt --check + lint + type-check
 `src/types.gen.ts` is **generated** — never edit it by hand; run `deno task gen:types`.
 
 ## See Also
-- Onix [web-api docs](https://onix.kros.sk/externe-prepojenie/web-api-dokumentacia/)
+- [Onix docs](https://onix.kros.sk/)
+- [Onix web-api docs](https://onix.kros.sk/externe-prepojenie/web-api-dokumentacia/)
 
 ## License
 
