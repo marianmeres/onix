@@ -1,31 +1,3 @@
-/**
- * `@marianmeres/onix` — a thin, typed HTTP client over the Kros Onix REST API.
- *
- * Built on `@marianmeres/http-utils` (transport + typed HTTP errors) and
- * `@marianmeres/clog` (request/error logging).
- *
- * @example
- * ```ts
- * import { createOnixClient, isOk } from "@marianmeres/onix";
- *
- * const onix = createOnixClient({
- *   baseUrl: "http://195.146.148.139/ONIX_API/",
- *   apiKey: "…",
- *   databasePath: "my_db",
- * });
- *
- * const types = await onix.documents.types();
- * for await (const partner of onix.partners.listAll({ pageSize: 100 })) {
- *   console.log(partner.Name);
- * }
- *
- * const result = await onix.partners.save({ Name: "ACME", Ns_Number: "P1" });
- * if (!isOk(result)) console.warn(result.Errors);
- * ```
- *
- * @module
- */
-
 // Client + facade
 export { createOnixClient, OnixClient } from "./client.ts";
 export type { OnixContext } from "./resources.ts";
