@@ -1,0 +1,3 @@
+A thin, typed HTTP client for the Kros Onix accounting/ERP REST API. Covers Documents, 
+Partners, StockItems, and Stocks with cursor pagination, typed errors, and Onix Result-code 
+handling. Runs on Deno and Node (JSR + npm).
